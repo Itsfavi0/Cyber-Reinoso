@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from datetime import datetime
 
 class SaldoInsuficienteError(Exception):
     """Excepción para controlar transacciones denegadas por falta de dinero."""
@@ -70,3 +71,33 @@ class PC_VIP(EstacionTrabajo):
     def calcular_tarifa(self, minutos) -> float:
         tarifa_minuto = 3.50/60
         return round(minutos * tarifa_minuto, 2)
+    
+class Sesion:
+    def __init__(self, id_sesion: int, usuario: Usuario, estacion: EstacionTrabajo):
+        self.id_sesion = id_sesion
+        self.usuario = usuario
+        self.estacion = estacion
+        
+        self.hora_inicio = datetime.now()
+        self.hora_fin = None
+        self.monto_cobrado = 0.0
+        
+        self.estacion_estado = "Ocupada"
+        
+    def finalizar_sesion(self):
+        """Detenemos el cronómetro, calcula los minutos y cobra al usuario."""
+        if self.hora_fin is not None:
+            raise ValueError("Esta sesión ya fue finalizada anteriormente.")
+        
+        self.hora_fin = datetime.now()
+        
+        diferencia = self.hora_fin - self.hora_inicio
+        minutos_consumidos = int(diferencia.total_seconds() / 60)
+        
+        if minutos_consumidos == 0:
+            minutos_consumidos = 1
+            
+        self.monto_cobrado = self.estacion.calcular_tarifa(minutos_consumidos)
+        
+        self.usuario.descontar_saldo(self.monto_cobrado)
+        self.estacion.estado = "Disponible"
