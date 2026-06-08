@@ -5,7 +5,7 @@ BEGIN
 END
 GO
 
--- Usamos a la base de datos correcto
+-- Usamos base de datos correcta
 USE CyberReinoso;
 GO
 
