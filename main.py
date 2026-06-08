@@ -44,6 +44,40 @@ class AppCyberReinoso(tk.Tk):
         self.frame_mapa = tk.Frame(self, bg="#e0e0eb", bd=3, relief="groove")
         self.frame_mapa.pack(expand=True, fill="both", padx=20, pady=10)
         
+        self.dibujar_mapa_pcs()
+        
+    # Dibujamos el mapa usando grid    
+    def dibujar_mapa_pcs(self):
+        # Configuramos nuestras pcs maximas por fila
+        columnas_maximas = 3
+        
+        # Recorrido de nuestra lista objetos pc
+        for index, pc in enumerate(self.lista_pcs):
+            # Si index es 0, 1, 2 -> Fila 0
+            # Si index es 3, 4, 5 -> Fila 1
+            fila = index // columnas_maximas
+            columna = index % columnas_maximas
+            
+            # Elegimos color por categoria
+            color_fondo = "#d1c4e9" if pc.categoria == "VIP" else "#c8e6c9"
+            
+            # Frame para cada pc
+            frame_pc = tk.Frame(self.frame_mapa, bg=color_fondo, bd=2, relief="raised", padx=10, pady=10)
+            frame_pc.grid(row=fila, column=columna, padx=15, pady=15)
+            
+            # Informacion de cada pc en el frame
+            lbl_nombre = tk.Label(frame_pc, text=pc.codigo_pc, font=("Arial", 12, "bold"), bg=color_fondo)
+            lbl_nombre.pack()
+            
+            lbl_cat = tk.Label(frame_pc, text=pc.categoria, font=("Arial", 9), bg=color_fondo, fg="#555555")
+            lbl_cat.pack()
+            
+            lbl_estado = tk.Label(frame_pc, text=pc.estado, font=("Arial", 10, "bold"), bg=color_fondo, fg="green")
+            lbl_estado.pack(pady=5)
+             
+            btn_accion = tk.Button(frame_pc, text="Asignar", bg="#ffffff")
+            btn_accion.pack()
+            
 if __name__ == "__main__":
     app = AppCyberReinoso()
     app.mainloop()
