@@ -58,8 +58,14 @@ class AppCyberReinoso(tk.Tk):
             fila = index // columnas_maximas
             columna = index % columnas_maximas
             
-            # Elegimos color por categoria
-            color_fondo = "#d1c4e9" if pc.categoria == "VIP" else "#c8e6c9"
+            if pc.estado == "Disponible":
+                color_fondo = "#d1c4e9" if pc.categoria == "VIP" else "#c8e6c9"
+                texto_boton = "Asignar"
+                estado_btn = tk.NORMAL
+            else: # Significa que la pc esta en uso
+                color_fondo = "#ffcdd2"
+                texto_boton = "En uso"
+                estado_btn = tk.DISABLED # Desactivamos el boton 
             
             # Frame para cada pc
             frame_pc = tk.Frame(self.frame_mapa, bg=color_fondo, bd=2, relief="raised", padx=10, pady=10)
@@ -72,12 +78,31 @@ class AppCyberReinoso(tk.Tk):
             lbl_cat = tk.Label(frame_pc, text=pc.categoria, font=("Arial", 9), bg=color_fondo, fg="#555555")
             lbl_cat.pack()
             
-            lbl_estado = tk.Label(frame_pc, text=pc.estado, font=("Arial", 10, "bold"), bg=color_fondo, fg="green")
+            color_texto_estado = "green" if pc.estado == "Disponible" else "red" 
+            lbl_estado = tk.Label(frame_pc, text=pc.estado, font=("Arial", 10, "bold"), bg=color_fondo, fg=color_texto_estado)
             lbl_estado.pack(pady=5)
              
-            btn_accion = tk.Button(frame_pc, text="Asignar", bg="#ffffff")
+            btn_accion = tk.Button(frame_pc, text=texto_boton, bg="#ffffff", state=estado_btn,
+                                   command=lambda maquina=pc: self.iniciar_sesion(maquina))
             btn_accion.pack()
             
+    def iniciar_sesion(self, maquina_seleccionada):
+        """Se ejecuta cuando asignamos una pc"""
+        nueva_sesion = Sesion(id_sesion=999, usuario=self.usuario_prueba, estacion=maquina_seleccionada)
+        
+        print(f"Sesión iniciada en {maquina_seleccionada.codigo_pc} por {nueva_sesion.usuario.alias_gamer}")
+    
+        self.refrescar_interfaz()
+        
+    def refrescar_interfaz(self):
+        """"Limpia o destruye los widgets y vuelve a dibujar el mapa de las PCs"""
+        
+        # winfo_children() obtiene todos los recuadros dentro del frame_mapa
+        for widget in self.frame_mapa.winfo_children():
+            widget.destroy()
+            
+        self.dibujar_mapa_pcs()
+        
 if __name__ == "__main__":
     app = AppCyberReinoso()
     app.mainloop()
