@@ -82,7 +82,8 @@ class Sesion:
         self.hora_fin = None
         self.monto_cobrado = 0.0
         
-        self.estacion_estado = "Ocupada"
+        # Al iniciar una sesion la maquina cambia de estado a ocupada
+        self.estacion.estado = "Ocupada"
         
     def finalizar_sesion(self):
         """Detenemos el cronómetro, calcula los minutos y cobra al usuario."""
