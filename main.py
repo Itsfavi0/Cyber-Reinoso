@@ -40,11 +40,21 @@ class AppCyberReinoso(tk.Tk):
                               font=("Arial", 18, "bold"), bg="#f4f4f9", fg="#333333")
         lbl_titulo.pack(pady=10)
         
-        # Contenedor del mapa de computadoras
-        self.frame_mapa = tk.Frame(self, bg="#e0e0eb", bd=3, relief="groove")
-        self.frame_mapa.pack(expand=True, fill="both", padx=20, pady=10)
+        # Caja para partir la ventana en dos partes
+        self.contenedor_principal = tk.Frame(self, bg="#f4f4f9")
+        self.contenedor_principal.pack(expand=True, fill="both", padx=10, pady=10)
+        
+        # Contenedor del mapa de computadoras puesto a la izquierda
+        self.frame_mapa = tk.Frame(self.contenedor_principal, bg="#e0e0eb", bd=3, relief="groove")
+        self.frame_mapa.pack(side="left", expand=True, fill="both", padx=20, pady=10)
+        
+        # Panel del cliente puesto a la derecha
+        self.frame_panel = tk.LabelFrame(self.contenedor_principal, text="Módulo del Cliente",
+                                         font=("Arial", 12, "bold"), bg="#f4f4f9", padx=20, pady=20)
+        self.frame_panel.pack(side="right", fill="y", padx=10, pady=10)
         
         self.dibujar_mapa_pcs()
+        self.dibujar_panel_usuario()
         
     # Dibujamos el mapa usando grid    
     def dibujar_mapa_pcs(self):
@@ -85,6 +95,31 @@ class AppCyberReinoso(tk.Tk):
             btn_accion = tk.Button(frame_pc, text=texto_boton, bg="#ffffff", state=estado_btn,
                                    command=lambda maquina=pc: self.iniciar_sesion(maquina))
             btn_accion.pack()
+    
+    # dibuja la informacion del cliente en un panel derecho
+    def dibujar_panel_usuario(self):
+        usuario = self.usuario_prueba
+        
+        #creamos etiquetas del usuario
+        lbl_alias_titulo = tk.Label(self.frame_panel, text="Gamer:", font=("Arial", 10), bg="#f4f4f9", fg="#555555")
+        lbl_alias_titulo.pack(anchor="w")
+        
+        lbl_alias = tk.Label(self.frame_panel, text=usuario.alias_gamer, font=("Arial", 14, "bold"), bg="#f4f4f9", fg="#333333")
+        lbl_alias.pack(anchor="w", pady=(0, 15))
+        
+        lbl_rango_titulo = tk.Label(self.frame_panel, text="Rango:", font=("Arial", 10), bg="#f4f4f9", fg="#555555")
+        lbl_rango_titulo.pack(anchor="w")
+        
+        color_rango = "purple" if usuario.rango_cuenta == "VIP" else "blue"
+        lbl_rango = tk.Label(self.frame_panel, text=usuario.rango_cuenta, font=("Arial", 14, "bold"), bg="#f4f4f9", fg=color_rango)
+        lbl_rango.pack(anchor="w", pady=(0, 15))
+        
+        lbl_saldo_titulo = tk.Label(self.frame_panel, text="Saldo Disponible:", font=("Arial", 10), bg="#f4f4f9", fg="#555555")
+        lbl_saldo_titulo.pack(anchor="w")
+        
+        self.lbl_saldo_valor = tk.Label(self.frame_panel, text=f"S/ {usuario.saldo_billetera:.2f}",
+                                        font=("Arial", 16, "bold"), bg="#f4f4f9", fg="green")
+        self.lbl_saldo_valor.pack(anchor="w", pady=(0, 20))
             
     def iniciar_sesion(self, maquina_seleccionada):
         """Se ejecuta cuando asignamos una pc"""

@@ -10,21 +10,21 @@ class Usuario:
         self.id_usuario = id_usuario
         self.alias_gamer = alias_gamer
         self.rango_cuenta = rango_cuenta
-        self.__estado_billetera = saldo_inicial
+        self.__saldo_billetera = saldo_inicial
         
     @property
-    def estado_billetera(self):
-        return self.__estado_billetera
+    def saldo_billetera(self):
+        return self.__saldo_billetera
     
     def recargar_saldo(self, monto: float):
         if monto <= 0:
             raise ValueError("El monto a recargar debe ser mayor a cero.")
-        self.__estado_billetera += monto
+        self.__saldo_billeteraa += monto
         
     def descontar_saldo(self, costo: float):
-        if costo >= self.estado_billetera:
+        if costo >= self.saldo_billetera:
             raise SaldoInsuficienteError(f"Operación denegada. {self.alias_gamer} no tiene saldo suficiente.")
-        self.__estado_billetera -= costo
+        self.__saldo_billetera -= costo
 
 # Superclase Abstracta
 class EstacionTrabajo(ABC):
