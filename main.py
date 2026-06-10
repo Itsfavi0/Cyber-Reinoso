@@ -8,6 +8,7 @@ from modelos import Usuario, PC_Regular, PC_VIP, Sesion, SaldoInsuficienteError
 class AppCyberReinoso(tk.Tk):
     def __init__(self):
         super().__init__()
+        self.sesiones_activas = {}
 
         # Ventana básica
         self.title("Cyber Reinoso - Smart Center Dashboard")
@@ -71,11 +72,11 @@ class AppCyberReinoso(tk.Tk):
             if pc.estado == "Disponible":
                 color_fondo = "#d1c4e9" if pc.categoria == "VIP" else "#c8e6c9"
                 texto_boton = "Asignar"
-                estado_btn = tk.NORMAL
+                comando_btn = lambda maquina=pc : self.iniciar_sesion(maquina)
             else: # Significa que la pc esta en uso
                 color_fondo = "#ffcdd2"
-                texto_boton = "En uso"
-                estado_btn = tk.DISABLED # Desactivamos el boton 
+                texto_boton = "Cerrar Sesión"
+                comando_btn = lambda maquina=pc : self.cerrar_sesion(maquina) 
             
             # Frame para cada pc
             frame_pc = tk.Frame(self.frame_mapa, bg=color_fondo, bd=2, relief="raised", padx=10, pady=10)
@@ -92,8 +93,7 @@ class AppCyberReinoso(tk.Tk):
             lbl_estado = tk.Label(frame_pc, text=pc.estado, font=("Arial", 10, "bold"), bg=color_fondo, fg=color_texto_estado)
             lbl_estado.pack(pady=5)
              
-            btn_accion = tk.Button(frame_pc, text=texto_boton, bg="#ffffff", state=estado_btn,
-                                   command=lambda maquina=pc: self.iniciar_sesion(maquina))
+            btn_accion = tk.Button(frame_pc, text=texto_boton, bg="#ffffff", command=comando_btn)
             btn_accion.pack()
     
     # dibuja la informacion del cliente en un panel derecho
@@ -125,8 +125,26 @@ class AppCyberReinoso(tk.Tk):
         """Se ejecuta cuando asignamos una pc"""
         nueva_sesion = Sesion(id_sesion=999, usuario=self.usuario_prueba, estacion=maquina_seleccionada)
         
+        self.sesiones_activas[maquina_seleccionada.id_estacion] = nueva_sesion
+        
         print(f"Sesión iniciada en {maquina_seleccionada.codigo_pc} por {nueva_sesion.usuario.alias_gamer}")
-    
+        self.refrescar_interfaz()
+        
+    def cerrar_sesion(self, maquina_seleccionada):
+        """Se ejecuta al hacer clic en Cerrar Sesión"""
+        # Buscamos en nuestro registro las sesion actual
+        sesion_actual = self.sesiones_activas.get(maquina_seleccionada.id_estacion)
+           
+        if sesion_actual:
+            try:
+                sesion_actual.finalizar_sesion()
+                print(f"Sesión Cerrada. El nuevo saldo es S/{self.usuario_prueba.saldo_billetera:.2f}")
+            except SaldoInsuficienteError as e:
+                print(f"ALERTA: {e}")
+                
+            del self.sesiones_activas[maquina_seleccionada.id_estacion]
+            
+        self.lbl_saldo_valor.config(text=f"S/ {self.usuario_prueba.saldo_billetera:.2f}")
         self.refrescar_interfaz()
         
     def refrescar_interfaz(self):
