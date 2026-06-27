@@ -81,6 +81,51 @@ class DBManager:
                 cursor.close()
                 conn.close()
             
+    def obtener_usuario(self, id_usuario):
+        """Busca un usuario en la BD por su ID y retorna sus datos"""
+        conn = self.conectar()
+        datos_usuario = None
+        if conn:
+            try:
+                cursor =  conn.cursor()
+                cursor.execute(
+                    "SELECT * FROM Usuarios WHERE id_usuario = ?", (id_usuario)
+                )
+                fila = cursor.fetchone()
+                
+                if fila:
+                    datos_usuario = {
+                        "id_usuario": fila[0],
+                        "alias_gamer": fila[1],
+                        "rango_cuenta": fila[2],
+                        "saldo_billetera": float(fila[3])
+                    }
+                
+            except pyodbc.Error as e:
+                print(f"Error al leer el usuario: {e}")
+            finally:
+                cursor.close()
+                conn.close()
+                
+        return datos_usuario
+    
+    def actualizar_saldo_usuario(self, id_usuario, nuevo_saldo):
+        """Actualiza el saldo del usuario en la BD"""
+        conn = self.conectar()
+        if conn:
+            try:
+                cursor = conn.cursor()
+                
+                consulta = "UPDATE Usuarios SET saldo_billetera = ? WHERE id_usuario = ?"
+                cursor.execute(consulta, (nuevo_saldo, id_usuario))
+                conn.commit()
+                print(f"Base de datos actualizada con éxito | id_usuario: {id_usuario} Nuevo Saldo: {nuevo_saldo:.2f}")
+            except pyodbc.Error as e:
+                print(f"Error al actualizar saldo: {e}")
+            finally:
+                cursor.close()
+                conn.close()
+    
 if __name__ == "__main__":
     manager = DBManager()
     #manager.probar_conexion()

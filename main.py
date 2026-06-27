@@ -40,7 +40,19 @@ class AppCyberReinoso(tk.Tk):
             pc.estado = fila["estado_actual"]
             self.lista_pcs.append(pc)
         
-        self.usuario_prueba = Usuario("USER-001", "Itsfavi0", "VIP", 120.0)
+        datos_usr = db.obtener_usuario(1)
+        
+        if datos_usr:
+            self.usuario_prueba = Usuario(
+                datos_usr["id_usuario"],
+                datos_usr["alias_gamer"],
+                datos_usr["rango_cuenta"],
+                datos_usr["saldo_billetera"]
+            )
+        else:
+            print("No se encontró el usuario en la BD. Creando temporal...")
+            self.usuario_prueba = Usuario(999, "Invitado", "Regular", 0.0)
+            
         self.sesiones_activas = {}
         
     def crear_interfaz(self):
@@ -152,7 +164,8 @@ class AppCyberReinoso(tk.Tk):
         if sesion_actual:
             try:
                 sesion_actual.finalizar_sesion()
-                print(f"Sesión Cerrada. El nuevo saldo es S/{self.usuario_prueba.saldo_billetera:.2f}")
+                db = DBManager()
+                db.actualizar_saldo_usuario(self.usuario_prueba.id_usuario, self.usuario_prueba.saldo_billetera)
             except SaldoInsuficienteError as e:
                 print(f"ALERTA: {e}")
                 
