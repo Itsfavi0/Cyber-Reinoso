@@ -60,6 +60,26 @@ class DBManager:
                 conn.close()
                 
         return lista_estaciones 
+    
+    def actualizar_estado_pc(self, id_estacion, nuevo_estado):
+        """Actualiza el estado de la PC en la base de datos"""
+        conn = self.conectar()
+        if conn:
+            try:
+                cursor = conn.cursor()
+                consulta = """
+                    UPDATE Estaciones
+                    SET estado_actual = ? WHERE id_estacion = ?        
+                """
+                cursor.execute(consulta, (nuevo_estado, id_estacion))
+                
+                conn.commit()
+                print(f"Base de datos actualizada con éxito | PC: {id_estacion} Estado: {nuevo_estado}")
+            except pyodbc.Error as e:
+                print(f"Error al actualizar la base de datos: {e}")
+            finally:
+                cursor.close()
+                conn.close()
             
 if __name__ == "__main__":
     manager = DBManager()

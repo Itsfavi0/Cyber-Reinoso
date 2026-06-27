@@ -3,7 +3,7 @@ import tkinter as tk
 from conexion import DBManager
 
 # Importando la logica del negocio de modelos.py
-from modelos import Usuario, PC_Regular, PC_VIP, Sesion, SaldoInsuficienteError
+from modelos import Usuario, PC_Regular, PC_VIP, EstacionTrabajo, Sesion, SaldoInsuficienteError
 
 # Clase app que hereda de la ventana de tk
 class AppCyberReinoso(tk.Tk):
@@ -130,16 +130,21 @@ class AppCyberReinoso(tk.Tk):
                                         font=("Arial", 16, "bold"), bg="#f4f4f9", fg="green")
         self.lbl_saldo_valor.pack(anchor="w", pady=(0, 20))
             
-    def iniciar_sesion(self, maquina_seleccionada):
+    def iniciar_sesion(self, maquina_seleccionada: EstacionTrabajo):
         """Se ejecuta cuando asignamos una pc"""
         nueva_sesion = Sesion(id_sesion=999, usuario=self.usuario_prueba, estacion=maquina_seleccionada)
         
         self.sesiones_activas[maquina_seleccionada.id_estacion] = nueva_sesion
         
+        maquina_seleccionada.estado = "Ocupada"
+        #avisamos a la base de datos
+        db = DBManager()
+        db.actualizar_estado_pc(maquina_seleccionada.id_estacion, "Ocupada")
+        
         print(f"Sesión iniciada en {maquina_seleccionada.codigo_pc} por {nueva_sesion.usuario.alias_gamer}")
         self.refrescar_interfaz()
         
-    def cerrar_sesion(self, maquina_seleccionada):
+    def cerrar_sesion(self, maquina_seleccionada: EstacionTrabajo):
         """Se ejecuta al hacer clic en Cerrar Sesión"""
         # Buscamos en nuestro registro las sesion actual
         sesion_actual = self.sesiones_activas.get(maquina_seleccionada.id_estacion)
@@ -152,6 +157,9 @@ class AppCyberReinoso(tk.Tk):
                 print(f"ALERTA: {e}")
                 
             del self.sesiones_activas[maquina_seleccionada.id_estacion]
+            
+            db = DBManager()
+            db.actualizar_estado_pc(maquina_seleccionada.id_estacion, "Disponible")
             
         self.lbl_saldo_valor.config(text=f"S/ {self.usuario_prueba.saldo_billetera:.2f}")
         self.refrescar_interfaz()
