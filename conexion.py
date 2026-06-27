@@ -2,12 +2,10 @@ import pyodbc
 
 class DBManager:
     def __init__(self):
-        # Cadena de conexión estándar para SQL Server Express o LocalDB
-        # Usamos Autenticación de Windows (Trusted_Connection=yes) para mayor seguridad local
         self.connection_string = (
             "Driver={ODBC Driver 17 for SQL Server};"
-            "Server=localhost;"  # Cambia por tu servidor si usas otra instancia
-            "Database=CyberReinoso;"       # El nombre que le diste a tu base de datos
+            "Server=localhost;"
+            "Database=CyberReinoso;"
             "Trusted_Connection=yes;"
         )
         
@@ -32,6 +30,40 @@ class DBManager:
             cursor.close()
             conn.close()
             
+    def obtener_estaciones(self):
+        """Consula la base de datos y retorna una lista de diccionarios con las PCs"""
+        conn = self.conectar()
+        lista_estaciones = []
+        if conn:
+            try:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """
+                        SELECT id_estacion, codigo_pc, categoria, estado_actual
+                        FROM Estaciones
+                    """
+                    )
+                filas = cursor.fetchall()
+                
+                for fila in filas:
+                    estacion = {
+                        "id_estacion" : fila[0],
+                        "codigo_pc" : fila[1],
+                        "categoria" : fila[2],
+                        "estado_actual" : fila[3]
+                    }
+                    lista_estaciones.append(estacion)
+            except pyodbc.Error as e:
+                print(f"Error al leer las estaciones: {e}")
+            finally:
+                cursor.close()
+                conn.close()
+                
+        return lista_estaciones 
+            
 if __name__ == "__main__":
     manager = DBManager()
-    manager.probar_conexion()
+    #manager.probar_conexion()
+    pcs_reales = manager.obtener_estaciones()
+    for pc in pcs_reales:
+        print(pc)
