@@ -1,5 +1,6 @@
 import tkinter as tk
-from tkinter import *
+#Importando la conexion
+from conexion import DBManager
 
 # Importando la logica del negocio de modelos.py
 from modelos import Usuario, PC_Regular, PC_VIP, Sesion, SaldoInsuficienteError
@@ -16,23 +17,31 @@ class AppCyberReinoso(tk.Tk):
         self.config(bg="#f4f4f9")
         
         # inicializar base de datos simulada en memoria por ahora
-        self.cargar_datos_prueba()
+        self.cargar_datos_iniciales()
         
         # Construccion de la interfaz
         self.crear_interfaz()
         
-    def cargar_datos_prueba(self):
-        """Simulacion de lo que luego se traerá con un SELECT desde SQL Server"""
-        self.usuario_prueba = Usuario(id_usuario=1, alias_gamer="Itsfavi0", rango_cuenta="VIP", saldo_inicial=10.20)
+    def cargar_datos_iniciales(self):
+        """Extrae los datos de SQL y los convierte en objetos"""
+        self.lista_pcs = []
         
-        self.lista_pcs = [
-            PC_Regular(id_estacion=1, codigo_pc="PC-001"),
-            PC_Regular(id_estacion=2, codigo_pc="PC-002"),
-            PC_Regular(id_estacion=3, codigo_pc="PC-003"),
-            PC_Regular(id_estacion=4, codigo_pc="PC-004"),
-            PC_VIP(id_estacion=5, codigo_pc="VIP-001"),
-            PC_VIP(id_estacion=6, codigo_pc="VIP-002")
-        ]
+        #instanciamos la conexion con la base de datos
+        db = DBManager()
+        datos_db = db.obtener_estaciones()
+        
+        #Diccionarios a objetos
+        for fila in datos_db:
+            if fila["categoria"] == "VIP":
+                pc = PC_VIP(fila["id_estacion"], fila["codigo_pc"])
+            else:
+                pc = PC_Regular(fila["id_estacion"], fila["codigo_pc"])
+                
+            pc.estado = fila["estado_actual"]
+            self.lista_pcs.append(pc)
+        
+        self.usuario_prueba = Usuario("USER-001", "Itsfavi0", "VIP", 120.0)
+        self.sesiones_activas = {}
         
     def crear_interfaz(self):
         """Aquí maquetaremos los frames usando el gestor Grid o Pack"""
