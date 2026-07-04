@@ -148,7 +148,25 @@ class AppCyberReinoso(tk.Tk):
         self.lbl_saldo_valor = tk.Label(self.frame_panel, text=f"S/ {usuario.saldo_billetera:.2f}",
                                         font=("Arial", 16, "bold"), bg="#f4f4f9", fg="green")
         self.lbl_saldo_valor.pack(anchor="w", pady=(0, 20))
-            
+        
+        self.frame_tienda = tk.LabelFrame(self.frame_panel, text="Kiosco Cyber", font=("Arial", 12, "bold"), bg="#f0f0f0", padx=10, pady=10)
+        self.frame_tienda.pack(fill=tk.BOTH, expand=True, padx=10,pady=10)
+        
+        lbl_igv = tk.Label(self.frame_tienda, text="* Todos los precios incluyen IGV", font=("Arial", 8, "italic"), bg="#f0f0f0", fg="#555555")
+        lbl_igv.pack(pady=(5,15), anchor=tk.CENTER)
+        
+        self.btn_gaseosa = tk.Button(self.frame_tienda, text="Gaseosa - S/3.00", bg="#bbdefb", width=25,
+                                     command=lambda: self.comprar_producto("Gaseosa", 3.00))
+        self.btn_gaseosa.pack(pady=5, anchor=tk.CENTER)
+        
+        self.btn_snack = tk.Button(self.frame_tienda, text="Snack - S/2.50", bg="#ffe0b2", width=25,
+                                   command=lambda: self.comprar_producto("Snack", 2.50))
+        self.btn_snack.pack(pady=5, anchor=tk.CENTER)
+        
+        self.btn_horas = tk.Button(self.frame_tienda, text="Recarga 1 Hora - S/2.00", bg="#c8e6c9", width=25,
+                                   command=lambda: self.comprar_producto("Recarga 1 Hora", 2.00))
+        self.btn_horas.pack(pady=5, anchor=tk.CENTER)
+        
     def iniciar_sesion(self, maquina_seleccionada: EstacionTrabajo):
         """Se ejecuta cuando asignamos una pc"""
         
@@ -208,6 +226,22 @@ class AppCyberReinoso(tk.Tk):
             widget.destroy()
             
         self.dibujar_mapa_pcs()
+        
+    def comprar_producto(self, nombre_producto, precio):
+        """"Procesa la venta de un producto del kiosko y lo descuenta del saldo"""
+        #Validacion
+        if self.usuario_prueba.saldo_billetera < precio:
+            messagebox.showwarning("Saldo Insuficiente", f"No hay saldo suficiente para comprar {nombre_producto}.")
+            return
+        
+        self.usuario_prueba.descontar_saldo(precio)
+        
+        db = DBManager()
+        db.actualizar_saldo_usuario(self.usuario_prueba.id_usuario, self.usuario_prueba.saldo_billetera)
+        
+        self.lbl_saldo_valor.config(text=f"S/ {self.usuario_prueba.saldo_billetera:.2f}")
+        
+        messagebox.showinfo("Venta exitosa", f"Se vendió: {nombre_producto}\nTotal cobrado: S/{precio:.2f}\nNuevo Saldo: S/{self.usuario_prueba.saldo_billetera:.2f}")
         
 if __name__ == "__main__":
     app = AppCyberReinoso()
