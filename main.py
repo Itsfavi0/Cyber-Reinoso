@@ -1,8 +1,7 @@
 import tkinter as tk
-#Importando la conexion
+# Importamos messagebox para mostrar alertas y mensajes al usuario
+from tkinter import messagebox
 from conexion import DBManager
-
-# Importando la logica del negocio de modelos.py
 from modelos import Usuario, PC_Regular, PC_VIP, EstacionTrabajo, Sesion, SaldoInsuficienteError
 
 # Clase app que hereda de la ventana de tk
@@ -93,11 +92,19 @@ class AppCyberReinoso(tk.Tk):
             if pc.estado == "Disponible":
                 color_fondo = "#d1c4e9" if pc.categoria == "VIP" else "#c8e6c9"
                 texto_boton = "Asignar"
+                estado_boton = tk.NORMAL
                 comando_btn = lambda maquina=pc : self.iniciar_sesion(maquina)
-            else: # Significa que la pc esta en uso
+            elif pc.estado == "Mantenimiento":
+                color_fondo = "#ffe0b2"
+                texto_boton = "En Mantenimiento"
+                estado_boton = tk.DISABLED #Al estar en mantenimiento bloqueamos el boton
+                comando_btn = lambda: None
+            else:
                 color_fondo = "#ffcdd2"
                 texto_boton = "Cerrar Sesión"
+                estado_boton = tk.NORMAL
                 comando_btn = lambda maquina=pc : self.cerrar_sesion(maquina) 
+                
             
             # Frame para cada pc
             frame_pc = tk.Frame(self.frame_mapa, bg=color_fondo, bd=2, relief="raised", padx=10, pady=10)
@@ -114,7 +121,7 @@ class AppCyberReinoso(tk.Tk):
             lbl_estado = tk.Label(frame_pc, text=pc.estado, font=("Arial", 10, "bold"), bg=color_fondo, fg=color_texto_estado)
             lbl_estado.pack(pady=5)
              
-            btn_accion = tk.Button(frame_pc, text=texto_boton, bg="#ffffff", command=comando_btn)
+            btn_accion = tk.Button(frame_pc, text=texto_boton, bg="#ffffff", state=estado_boton, command=comando_btn)
             btn_accion.pack()
     
     # dibuja la informacion del cliente en un panel derecho
@@ -144,6 +151,12 @@ class AppCyberReinoso(tk.Tk):
             
     def iniciar_sesion(self, maquina_seleccionada: EstacionTrabajo):
         """Se ejecuta cuando asignamos una pc"""
+        
+        #Validacion de saldo
+        if self.usuario_prueba.saldo_billetera <= 0:
+            messagebox.showwarning("Saldo insuficiente", "El usuario no tiene saldo para iniciar una sesión. Por favor recargue la billetera.")
+            return #Cortamos la ejecucion para que no se inicie la sesion si no tiene saldo
+        
         nueva_sesion = Sesion(id_sesion=999, usuario=self.usuario_prueba, estacion=maquina_seleccionada)
         
         self.sesiones_activas[maquina_seleccionada.id_estacion] = nueva_sesion
@@ -154,6 +167,9 @@ class AppCyberReinoso(tk.Tk):
         db.actualizar_estado_pc(maquina_seleccionada.id_estacion, "Ocupada")
         
         print(f"Sesión iniciada en {maquina_seleccionada.codigo_pc} por {nueva_sesion.usuario.alias_gamer}")
+        # Confirmamos al usuario que la sesión ha sido iniciada
+        messagebox.showinfo("Sesión Iniciada", f"Se asignó la {maquina_seleccionada.codigo_pc} a {self.usuario_prueba.alias_gamer}.\n¡Disfruta tu tiempo de juego!")
+        
         self.refrescar_interfaz()
         
     def cerrar_sesion(self, maquina_seleccionada: EstacionTrabajo):
@@ -163,14 +179,21 @@ class AppCyberReinoso(tk.Tk):
            
         if sesion_actual:
             try:
+                # Intentamos hacer el cobro en la memoria
                 sesion_actual.finalizar_sesion()
+                
+                # Guardamos el nuevo saldo en la base de datos
                 db = DBManager()
                 db.actualizar_saldo_usuario(self.usuario_prueba.id_usuario, self.usuario_prueba.saldo_billetera)
-            except SaldoInsuficienteError as e:
-                print(f"ALERTA: {e}")
                 
-            del self.sesiones_activas[maquina_seleccionada.id_estacion]
+                messagebox.showinfo("Sesión Finalizada", f"Cobro exitoso.\nNuevo saldo: S/ {self.usuario_prueba.saldo_billetera:.2f}")        
+
+            except SaldoInsuficienteError as e:
+                messagebox.showerror("Error de Facturacion", f"Operacion denegada:\n{e}")
+                return #Cortamos la ejecucion para que la PC no se libere si no pagó
             
+            # Si todo salió bien, liberamos la PC y actualizamos la base de datos    
+            del self.sesiones_activas[maquina_seleccionada.id_estacion]
             db = DBManager()
             db.actualizar_estado_pc(maquina_seleccionada.id_estacion, "Disponible")
             
