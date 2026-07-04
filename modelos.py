@@ -19,10 +19,10 @@ class Usuario:
     def recargar_saldo(self, monto: float):
         if monto <= 0:
             raise ValueError("El monto a recargar debe ser mayor a cero.")
-        self.__saldo_billeteraa += monto
+        self.__saldo_billetera += monto
         
     def descontar_saldo(self, costo: float):
-        if costo >= self.saldo_billetera:
+        if costo > self.saldo_billetera:
             raise SaldoInsuficienteError(f"Operación denegada. {self.alias_gamer} no tiene saldo suficiente.")
         self.__saldo_billetera -= costo
 
