@@ -153,11 +153,21 @@ class AppCyberReinoso(tk.Tk):
         self.lbl_saldo_valor.pack(anchor="w", pady=(0, 20))
         
         #Kiosco
-        
         self.frame_tienda = tk.LabelFrame(self.frame_panel, text="Kiosco Cyber", font=("Arial", 12, "bold"), bg="#f0f0f0", padx=10, pady=10)
         self.frame_tienda.pack(fill=tk.BOTH, expand=True, padx=10,pady=10)
         
         self.dibujar_productos_tienda()
+        
+        #Boton para registrar usuarios
+        btn_registrar = tk.Button(
+            self.frame_panel,
+            text="Registrar nuevo Usuario",
+            font=("Arial", 10, "bold"),
+            bg="#e1bee7",
+            fg="#4a148c",
+            command=self.abrir_ventana_registro
+        )
+        btn_registrar.pack(fill=tk.X, pady=(15,0))
     
     def dibujar_productos_tienda(self):
         """Limpia los botones actuales del kiosco y los vuelve a renderizar con el stock real"""
@@ -278,6 +288,77 @@ class AppCyberReinoso(tk.Tk):
         self.dibujar_productos_tienda() #Redibujamos los productos
         
         messagebox.showinfo("Venta exitosa", f"Se vendió: {nombre_producto}\nTotal cobrado: S/{precio:.2f}\nNuevo Saldo: S/{self.usuario_prueba.saldo_billetera:.2f}")
+       
+    def abrir_ventana_registro(self):
+        """Crea una ventana emergente flotante para ingresar los datos del nuevo Usuario"""
+        ventana_reg = tk.Toplevel(self)
+        ventana_reg.title("Registrar Nuevo Usuario")
+        #ventana_reg.geometry("350x320")
+        ventana_reg.config(bg="#f4f4f9")
+        ventana_reg.resizable(False,False)
+        
+        #Bloquea la ventana principal hasta que se cierre la emergente
+        ventana_reg.grab_set()
+        
+        #Diseño
+        lbl_v_titulo = tk.Label(ventana_reg, text="Ficha de Nuevo Gamer", font=("Arial", 14, "bold"), bg="#f4f4f9", fg="#333333")
+        lbl_v_titulo.pack(pady=15)
+        
+        #alias
+        tk.Label(ventana_reg, text="Alias Gamer:", font=("Arial", 10), bg="#f4f4f9").pack(anchor="w", padx=30)
+        entry_alias = tk.Entry(ventana_reg, font=("Arial", 11), width=30)
+        entry_alias.pack(pady=(2,10), padx=30)
+        
+        #rango
+        tk.Label(ventana_reg, text="Rango Cuenta:", font=("Arial", 10), bg="#f4f4f9").pack(anchor="w", pady=30)
+        rango_var = tk.StringVar(value="Regular")
+        menu_rango = tk.OptionMenu(ventana_reg, rango_var, "Regular", "VIP")
+        menu_rango.config(font=("Arial", 10), width=26, bg="#ffffff")
+        menu_rango.pack(pady=(2,10), padx=30)
+        
+        #saldo inicial
+        tk.Label(ventana_reg, text="Saldo Inicial (S/):", font=("Arial", 10), bg="#f4f4f9").pack(anchor="w", pady=30)
+        entry_saldo = tk.Entry(ventana_reg, font=("Arial", 11), width=30)
+        entry_saldo.insert(0, "0.00")
+        entry_saldo.pack(pady=(2,15), padx=30)
+        entry_saldo.bind("<FocusIn>", lambda event: (entry_saldo.delete(0, tk.END), entry_saldo.config(fg="#000000")) if entry_saldo.get() == "0.00" else None)
+        entry_saldo.bind("<FocusOut>", lambda event: (entry_saldo.insert(0, "0.00"), entry_saldo.config(fg="#555555")) if entry_saldo.get().strip() == "" else None)
+        
+        #boton guardar
+        btn_guardar = tk.Button(
+            ventana_reg, 
+            text="Guardar Usuario",
+            font=("Arial", 11, "bold"),
+            bg="#c8e6c9", 
+            fg="#1b5e20",
+            command=lambda: self.procesar_registro_usuario(entry_alias.get(), rango_var.get(), entry_saldo.get(), ventana_reg)
+        )
+        btn_guardar.pack(pady=10)
+        
+    def procesar_registro_usuario(self, alias, rango, saldo_texto, ventana):
+        """"Valida las entradas del cajero y las manda a nuestro DAO"""
+        #validacion alias vacio
+        if not alias.strip():
+            messagebox.showwarning("Formulario Incompleto", "El campo 'Alias Gamer' no puede estar vacío", parent=ventana)
+            return
+        
+        try:
+            saldo_inicial = float(saldo_texto)
+            if saldo_inicial < 0:
+                raise ValueError
+        except ValueError:
+            messagebox.showwarning("Error de Formato", "El saldo debe ser un número positivo válido", parent=ventana)
+            return
+        
+        db = DBManager()
+        exito = db.registrar_usuario(alias.strip(), rango, saldo_inicial)
+        
+        if exito:
+            messagebox.showinfo("Registro Exitoso", f"El Usuario '{alias}' ha sido incorporado al sistema correctamente")
+            ventana.destroy()
+        else:
+            messagebox.showerror("Error del Sistema", "No se pudo completar el registro en la Base de Datos.", parent=ventana)            
+            
         
 if __name__ == "__main__":
     app = AppCyberReinoso()
