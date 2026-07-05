@@ -172,6 +172,31 @@ class DBManager:
             finally:
                 cursor.close()
                 conn.close()
+                
+    def registrar_usuario(self, alias_gamer, rango_cuenta, saldo_inicial):
+        """Inserta un nuevo gamer a la base de datos y retorna True si tuvo exito"""
+        conn = self.conectar()
+        if conn:
+            try:
+                cursor = conn.cursor()
+                
+                consulta = """
+                    INSERT INTO Usuarios (alias_gamer, rango_cuenta, saldo_billetera)
+                    VALUES (?, ?, ?)
+                """
+                cursor.execute(consulta, (alias_gamer, rango_cuenta, saldo_inicial))
+                conn.commit()
+                print(f"Usuario {alias_gamer} guardado en la base de datos con éxito")
+                return True
+            except pyodbc.Error as e:
+                print(f"Error al registrar el usuario en la base de datos: {e}")
+                return False
+            finally:
+                cursor.close()
+                conn.close()
+        return False
+                
+        
     
 if __name__ == "__main__":
     manager = DBManager()
