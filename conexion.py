@@ -222,7 +222,24 @@ class DBManager:
                 conn.close()
         return False
                 
-        
+    def guardar_historial_sesion(self, id_usuario, id_estacion, hora_inicio, hora_fin, monto_cobrado):
+        """Inserta el registro final de una sesión terminada para el cuadre de caja"""
+        conn = self.conectar()
+        if conn:
+            try:
+                cursor = conn.cursor()
+                consulta = """
+                    INSERT INTO Sesiones (id_usuario, id_estacion, hora_inicio, hora_fin, monto_cobrado)
+                    VALUES (?, ?, ?, ?, ?)
+                """
+                cursor.execute(consulta, (id_usuario, id_estacion, hora_inicio, hora_fin, monto_cobrado))
+                conn.commit()
+                print(f"Historial guardado: PC {id_estacion} | Usuario {id_usuario} | Cobro: S/{monto_cobrado:.2f}")
+            except pyodbc.Error as e:
+                print(f"Error al guardar el historial de la sesión: {e}")
+            finally:
+                cursor.close()
+                conn.close()
     
 if __name__ == "__main__":
     manager = DBManager()

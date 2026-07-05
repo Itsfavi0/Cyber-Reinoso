@@ -267,34 +267,6 @@ class AppCyberReinoso(tk.Tk):
         
         self.refrescar_interfaz()
         
-    def cerrar_sesion(self, maquina_seleccionada: EstacionTrabajo):
-        """Se ejecuta al hacer clic en Cerrar Sesión"""
-        # Buscamos en nuestro registro las sesion actual
-        sesion_actual = self.sesiones_activas.get(maquina_seleccionada.id_estacion)
-           
-        if sesion_actual:
-            usuario_original = sesion_actual.usuario
-            try:
-                # Intentamos hacer el cobro en la memoria
-                sesion_actual.finalizar_sesion()
-                
-                # Guardamos el nuevo saldo en la base de datos
-                db = DBManager()
-                db.actualizar_saldo_usuario(usuario_original.id_usuario, usuario_original.saldo_billetera)
-                
-                messagebox.showinfo("Sesión Finalizada", f"Cobro exitoso.\nNuevo saldo: S/ {usuario_original.saldo_billetera:.2f}")        
-
-            except SaldoInsuficienteError as e:
-                messagebox.showerror("Error de Facturacion", f"Operacion denegada:\n{e}")
-                return #Cortamos la ejecucion para que la PC no se libere si no pagó
-            
-            # Si todo salió bien, liberamos la PC y actualizamos la base de datos    
-            del self.sesiones_activas[maquina_seleccionada.id_estacion]
-            db = DBManager()
-            db.actualizar_estado_pc(maquina_seleccionada.id_estacion, "Disponible")
-        
-        self.dibujar_panel_usuario()
-        self.refrescar_interfaz()
         
     def refrescar_interfaz(self):
         """"Limpia o destruye los widgets y vuelve a dibujar el mapa de las PCs"""
@@ -397,6 +369,42 @@ class AppCyberReinoso(tk.Tk):
         else:
             messagebox.showerror("Error del Sistema", "No se pudo completar el registro en la Base de Datos.", parent=ventana)            
             
+    def cerrar_sesion(self, maquina_seleccionada: EstacionTrabajo):
+        """Se ejecuta al hacer clic en Cerrar Sesión"""
+        # Buscamos en nuestro registro las sesion actual
+        sesion_actual = self.sesiones_activas.get(maquina_seleccionada.id_estacion)
+           
+        if sesion_actual:
+            usuario_original = sesion_actual.usuario
+            try:
+                # Intentamos hacer el cobro en la memoria
+                sesion_actual.finalizar_sesion()
+                
+                # Guardamos el nuevo saldo en la base de datos
+                db = DBManager()
+                db.actualizar_saldo_usuario(usuario_original.id_usuario, usuario_original.saldo_billetera)
+                
+                db.guardar_historial_sesion(
+                    usuario_original.id_usuario,
+                    maquina_seleccionada.id_estacion,
+                    sesion_actual.hora_inicio,
+                    sesion_actual.hora_fin,
+                    sesion_actual.monto_cobrado
+                )
+                
+                messagebox.showinfo("Sesión Finalizada", f"Cobro exitoso.\nNuevo saldo: S/ {usuario_original.saldo_billetera:.2f}")        
+
+            except SaldoInsuficienteError as e:
+                messagebox.showerror("Error de Facturacion", f"Operacion denegada:\n{e}")
+                return #Cortamos la ejecucion para que la PC no se libere si no pagó
+            
+            # Si todo salió bien, liberamos la PC y actualizamos la base de datos    
+            del self.sesiones_activas[maquina_seleccionada.id_estacion]
+            db = DBManager()
+            db.actualizar_estado_pc(maquina_seleccionada.id_estacion, "Disponible")
+        
+        self.dibujar_panel_usuario()
+        self.refrescar_interfaz()
         
 if __name__ == "__main__":
     app = AppCyberReinoso()
