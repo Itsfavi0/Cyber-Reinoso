@@ -127,7 +127,33 @@ class DBManager:
             finally:
                 cursor.close()
                 conn.close()
-            
+    
+    def obtener_todos_los_usuarios(self):
+        """Obtiene una lista básica de todos los gamers para el selector de la interfaz"""
+        conn = self.conectar()
+        lista_usuarios = []
+        if conn:
+            try:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT id_usuario, alias_gamer FROM Usuarios ORDER BY alias_gamer ASC"
+                )
+                filas = cursor.fetchall()
+                
+                for fila in filas:
+                    usuario = {
+                        "id_usuario": fila[0],
+                        "alias_gamer": fila[1]
+                    }
+                    lista_usuarios.append(usuario)
+            except pyodbc.Error as e:
+                print(f"Error al listar los usuarios: {e}")
+            finally:
+                cursor.close()
+                conn.close()
+                
+        return lista_usuarios
+     
     def obtener_usuario(self, id_usuario):
         """Busca un usuario en la BD por su ID y retorna sus datos"""
         conn = self.conectar()
