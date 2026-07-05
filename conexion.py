@@ -61,6 +61,53 @@ class DBManager:
                 
         return lista_estaciones 
     
+    def obtener_productos(self):
+        """Consulta la base de datos y retorna una lista de diccionarios con los productos"""
+        conn = self.conectar()
+        lista_productos = []
+        if conn:
+            try:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """
+                        SELECT id_producto, nombre_producto, precio, stock
+                        FROM Productos
+                    """
+                )
+                filas = cursor.fetchall()
+                
+                for fila in filas:
+                    producto = {
+                        "id_producto" : fila[0],
+                        "nombre_producto" : fila[1],
+                        "precio" : float(fila[2]),
+                        "stock" : fila[3]
+                    }
+                    lista_productos.append(producto)
+            except pyodbc.Error as e:
+                print(f"Error al leer los productos: {e}")
+            finally:
+                cursor.close()
+                conn.close()
+                
+        return lista_productos
+    
+    def restar_stock_producto(self, nombre_producto):
+        """Resta 1 unidad al stock del producto en la BD siempre que tenga existencia"""
+        conn = self.conectar()
+        if conn:
+            try:
+                cursor = conn.cursor()
+                consulta = "UPDATE Productos SET stock = stock - 1 WHERE nombre_producto = ? AND stock > 0"
+                cursor.execute(consulta, (nombre_producto))
+                conn.commit()
+                print(f"Inventario actualizado con éxito | Producto: {nombre_producto} (-1 unidades)")
+            except pyodbc as e:
+                print(f"Error al actualizar el stock: {e}")
+            finally:
+                cursor.close()
+                conn.close()
+            
     def actualizar_estado_pc(self, id_estacion, nuevo_estado):
         """Actualiza el estado de la PC en la base de datos"""
         conn = self.conectar()
