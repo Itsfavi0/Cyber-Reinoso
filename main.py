@@ -1,6 +1,6 @@
 import tkinter as tk
-# Importamos messagebox para mostrar alertas y mensajes al usuario
 from tkinter import messagebox
+from tkinter import ttk
 from conexion import DBManager
 from modelos import Usuario, PC_Regular, PC_VIP, EstacionTrabajo, Sesion, SaldoInsuficienteError
 
@@ -12,7 +12,7 @@ class AppCyberReinoso(tk.Tk):
 
         # Ventana básica
         self.title("Cyber Reinoso - Smart Center Dashboard")
-        self.geometry("900x600")
+        self.geometry("900x700")
         self.config(bg="#f4f4f9")
         
         # inicializar base de datos simulada en memoria por ahora
@@ -129,7 +129,27 @@ class AppCyberReinoso(tk.Tk):
     
     # dibuja la informacion del cliente en un panel derecho
     def dibujar_panel_usuario(self):
+        """"Dibuja el panel derecho con el selector de usuarios, datos y el kiosco"""
+        for widget in self.frame_panel.winfo_children():
+            widget.destroy()
+        
         usuario = self.usuario_prueba
+        
+        frame_seleccion = tk.Frame(self.frame_panel, bg="#f4f4f9")
+        frame_seleccion.pack(fill=tk.X, pady=(0,15))
+        
+        tk.Label(frame_seleccion, text="Seleccionar Cliente:", font=("Arial", 10, "bold"), bg="#f4f4f9").pack(anchor="w")
+        
+        db = DBManager()
+        todos_los_usuarios = db.obtener_todos_los_usuarios()
+        
+        lista_nombres = [f"{u['id_usuario']} - {u['alias_gamer']}" for u in todos_los_usuarios]
+        self.combo_usuarios = ttk.Combobox(frame_seleccion, values=lista_nombres, state="readonly", font=("Arial", 11))
+        self.combo_usuarios.pack(fill=tk.X, pady=5)
+        self.combo_usuarios.set(f"{usuario.id_usuario} - {usuario.alias_gamer}") #Usuario prueba actual
+        
+        #cambio de seleccion
+        self.combo_usuarios.bind("<<ComboboxSelected>>", self.cambiar_usuario_activo)
         
         #creamos etiquetas del usuario
         lbl_alias_titulo = tk.Label(self.frame_panel, text="Gamer:", font=("Arial", 10), bg="#f4f4f9", fg="#555555")
@@ -168,6 +188,23 @@ class AppCyberReinoso(tk.Tk):
             command=self.abrir_ventana_registro
         )
         btn_registrar.pack(fill=tk.X, pady=(15,0))
+        
+    def cambiar_usuario_activo(self,event):
+        """Se ejecuta cada vez que el cajero elige un nombre distinto en la lista desplegable"""
+        seleccion = self.combo_usuarios.get()
+        
+        id_seleccionado = int(seleccion.split(" - ")[0])
+        db = DBManager()
+        datos_usr = db.obtener_usuario(id_seleccionado)
+        
+        if datos_usr:
+            self.usuario_prueba = Usuario(
+                datos_usr["id_usuario"],
+                datos_usr["alias_gamer"],
+                datos_usr["rango_cuenta"],
+                datos_usr["saldo_billetera"]
+            )
+        self.dibujar_panel_usuario()
     
     def dibujar_productos_tienda(self):
         """Limpia los botones actuales del kiosco y los vuelve a renderizar con el stock real"""
@@ -236,15 +273,16 @@ class AppCyberReinoso(tk.Tk):
         sesion_actual = self.sesiones_activas.get(maquina_seleccionada.id_estacion)
            
         if sesion_actual:
+            usuario_original = sesion_actual.usuario
             try:
                 # Intentamos hacer el cobro en la memoria
                 sesion_actual.finalizar_sesion()
                 
                 # Guardamos el nuevo saldo en la base de datos
                 db = DBManager()
-                db.actualizar_saldo_usuario(self.usuario_prueba.id_usuario, self.usuario_prueba.saldo_billetera)
+                db.actualizar_saldo_usuario(usuario_original.id_usuario, usuario_original.saldo_billetera)
                 
-                messagebox.showinfo("Sesión Finalizada", f"Cobro exitoso.\nNuevo saldo: S/ {self.usuario_prueba.saldo_billetera:.2f}")        
+                messagebox.showinfo("Sesión Finalizada", f"Cobro exitoso.\nNuevo saldo: S/ {usuario_original.saldo_billetera:.2f}")        
 
             except SaldoInsuficienteError as e:
                 messagebox.showerror("Error de Facturacion", f"Operacion denegada:\n{e}")
@@ -254,8 +292,8 @@ class AppCyberReinoso(tk.Tk):
             del self.sesiones_activas[maquina_seleccionada.id_estacion]
             db = DBManager()
             db.actualizar_estado_pc(maquina_seleccionada.id_estacion, "Disponible")
-            
-        self.lbl_saldo_valor.config(text=f"S/ {self.usuario_prueba.saldo_billetera:.2f}")
+        
+        self.dibujar_panel_usuario()
         self.refrescar_interfaz()
         
     def refrescar_interfaz(self):
