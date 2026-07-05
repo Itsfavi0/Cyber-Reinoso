@@ -3,6 +3,7 @@ from tkinter import messagebox
 from tkinter import ttk
 from conexion import DBManager
 from modelos import Usuario, PC_Regular, PC_VIP, EstacionTrabajo, Sesion, SaldoInsuficienteError
+from datetime import datetime
 
 # Clase app que hereda de la ventana de tk
 class AppCyberReinoso(tk.Tk):
@@ -20,6 +21,7 @@ class AppCyberReinoso(tk.Tk):
         
         # Construccion de la interfaz
         self.crear_interfaz()
+        self.actualizar_cronometros()
         
     def cargar_datos_iniciales(self):
         """Extrae los datos de SQL y los convierte en objetos"""
@@ -84,6 +86,7 @@ class AppCyberReinoso(tk.Tk):
     def dibujar_mapa_pcs(self):
         # Configuramos nuestras pcs maximas por fila
         columnas_maximas = 3
+        self.labels_cronometros = {}
         
         # Recorrido de nuestra lista objetos pc
         for index, pc in enumerate(self.lista_pcs):
@@ -123,6 +126,12 @@ class AppCyberReinoso(tk.Tk):
             color_texto_estado = "green" if pc.estado == "Disponible" else "red" 
             lbl_estado = tk.Label(frame_pc, text=pc.estado, font=("Arial", 10, "bold"), bg=color_fondo, fg=color_texto_estado)
             lbl_estado.pack(pady=5)
+            
+            lbl_tiempo = tk.Label(frame_pc, text="", font=("Courier", 11, "bold"), bg=color_fondo, fg="#333333")
+            lbl_tiempo.pack(pady=(0, 5))
+            
+            # Guardamos la etiqueta en el diccionario usando el ID de la PC como llave
+            self.labels_cronometros[pc.id_estacion] = lbl_tiempo
              
             btn_accion = tk.Button(frame_pc, text=texto_boton, bg="#ffffff", state=estado_boton, command=comando_btn)
             btn_accion.pack()
@@ -406,6 +415,31 @@ class AppCyberReinoso(tk.Tk):
         self.dibujar_panel_usuario()
         self.refrescar_interfaz()
         
+    def actualizar_cronometros(self):
+        """Calcula el tiempo transcurrido de cada sesión y actualiza la interfaz visual"""
+        tiempo_actual = datetime.now()
+        
+        # Iteramos solo sobre las máquinas que tienen una sesión activa
+        for id_estacion, sesion in self.sesiones_activas.items():
+            if id_estacion in self.labels_cronometros:
+                # Calculamos cuántos segundos han pasado
+                diferencia = tiempo_actual - sesion.hora_inicio
+                segundos_totales = int(diferencia.total_seconds())
+                
+                # Convertimos los segundos a formato HH:MM:SS
+                horas = segundos_totales // 3600
+                minutos = (segundos_totales % 3600) // 60
+                segundos = segundos_totales % 60
+                
+                # Formateamos el texto (ej: ⏱️ 00:05:09)
+                texto_reloj = f"⏱️ {horas:02d}:{minutos:02d}:{segundos:02d}"
+                
+                # Actualizamos la etiqueta en la pantalla
+                self.labels_cronometros[id_estacion].config(text=texto_reloj)
+                
+        #Le decimos a Tkinter que vuelva a ejecutar esta función en 1000 milisegundos (1 segundo)
+        self.after(1000, self.actualizar_cronometros)
+    
 if __name__ == "__main__":
     app = AppCyberReinoso()
     app.mainloop()
