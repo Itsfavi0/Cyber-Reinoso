@@ -479,7 +479,7 @@ class AppCyberReinoso(tk.Tk):
         tiempo_actual = datetime.now()
         
         # Iteramos solo sobre las máquinas que tienen una sesión activa
-        for id_estacion, sesion in self.sesiones_activas.items():
+        for id_estacion, sesion in list(self.sesiones_activas.items()):
             if id_estacion in self.labels_cronometros:
                 # Calculamos cuántos segundos han pasado
                 diferencia = tiempo_actual - sesion.hora_inicio
@@ -490,12 +490,26 @@ class AppCyberReinoso(tk.Tk):
                 minutos = (segundos_totales % 3600) // 60
                 segundos = segundos_totales % 60
                 
-                # Formateamos el texto (ej: ⏱️ 00:05:09)
+                # Formateamos el texto
                 texto_reloj = f"⏱️ {horas:02d}:{minutos:02d}:{segundos:02d}"
+                self.labels_cronometros[id_estacion].config(text=texto_reloj, fg="#333333")
                 
-                # Actualizamos la etiqueta en la pantalla
-                self.labels_cronometros[id_estacion].config(text=texto_reloj)
+                minutos_cobro = segundos_totales // 60
+                if minutos_cobro == 0:
+                    minutos_cobro = 1  # Cobrar al menos un minuto
+                    
+                costo_actual = sesion.estacion.calcular_tarifa(minutos_cobro)
                 
+                if costo_actual >= sesion.usuario.saldo_billetera:
+                    self.labels_cronometros[id_estacion].config(text="Saldo Agotado", fg="red")
+                    self.cerrar_sesion(sesion.estacion)
+                    
+                    messagebox.showwarning(
+                        "Corte Automático",
+                        f"La sesión en la {sesion.estacion.codigo_pc} se ha cerrado automaticamente.\n\n"
+                        f"El gamer {sesion.usuario.alias_gamer} ha consumido su saldo."
+                    )
+                    
         #Le decimos a Tkinter que vuelva a ejecutar esta función en 1000 milisegundos (1 segundo)
         self.after(1000, self.actualizar_cronometros)
     
