@@ -270,7 +270,7 @@ class AppCyberReinoso(tk.Tk):
         costo_minimo = maquina_seleccionada.calcular_tarifa(1)
         
         #Validacion de saldo
-        if self.usuario_prueba.saldo_billetera <= costo_minimo:
+        if self.usuario_prueba.saldo_billetera < costo_minimo:
             messagebox.showwarning(
                 "Saldo insuficiente", 
                 f"Para usar esta PC ({maquina_seleccionada.categoria}), el usuario necesita un minimo de S/{costo_minimo:.2f}.\n\n"
@@ -444,8 +444,8 @@ class AppCyberReinoso(tk.Tk):
         messagebox.showinfo("Recarga Exitosa", f"Se ha recargado S/ {monto:.2f} a la billetera de {self.usuario_prueba.alias_gamer}.\nNuevo saldo: S/ {self.usuario_prueba.saldo_billetera:.2f}")
         ventana.destroy()
             
-    def cerrar_sesion(self, maquina_seleccionada: EstacionTrabajo):
-        """Se ejecuta al hacer clic en Cerrar Sesión"""
+    def cerrar_sesion(self, maquina_seleccionada: EstacionTrabajo, es_corte_automatico=False):
+        """Se ejecuta al hacer clic en Cerrar Sesión o automaticamente por el saldo del usuario"""
         # Buscamos en nuestro registro las sesion actual
         sesion_actual = self.sesiones_activas.get(maquina_seleccionada.id_estacion)
            
@@ -466,12 +466,28 @@ class AppCyberReinoso(tk.Tk):
                     sesion_actual.hora_fin,
                     sesion_actual.monto_cobrado
                 )
-                
-                messagebox.showinfo("Sesión Finalizada", f"Cobro a usuario '{usuario_original.alias_gamer}' exitoso.\nNuevo saldo: S/ {usuario_original.saldo_billetera:.2f}")        
+                if not es_corte_automatico:
+                    messagebox.showinfo("Sesión Finalizada", f"Cobro a usuario '{usuario_original.alias_gamer}' exitoso.\nNuevo saldo: S/ {usuario_original.saldo_billetera:.2f}")        
 
             except SaldoInsuficienteError as e:
-                messagebox.showerror("Error de Facturacion", f"Operacion denegada:\n{e}")
-                return #Cortamos la ejecucion para que la PC no se libere si no pagó
+                if es_corte_automatico:
+                    db.actualizar_saldo_usuario(usuario_original.id_usuario, 0.00)
+                    
+                    db.guardar_historial_sesion(
+                        usuario_original.id_usuario, 
+                        maquina_seleccionada.id_estacion,
+                        sesion_actual.hora_inicio, 
+                        datetime.now, 
+                        usuario_original.saldo_billetera
+                    )
+                    messagebox.showwarning(
+                        "Corte Automatico",
+                        f"La sesión en {maquina_seleccionada.codigo_pc} se ha cerrado automaticamente.\n\n"
+                        f"El gamer {usuario_original.alias_gamer} consumió todo su saldo."
+                    )    
+                else:
+                    messagebox.showerror("Error de Facturacion", f"Operacion denegada:\n{e}")
+                    return #Cortamos la ejecucion para que la PC no se libere si no pagó
             
             # Si todo salió bien, liberamos la PC y actualizamos la base de datos    
             del self.sesiones_activas[maquina_seleccionada.id_estacion]
@@ -501,15 +517,13 @@ class AppCyberReinoso(tk.Tk):
                 texto_reloj = f"⏱️ {horas:02d}:{minutos:02d}:{segundos:02d}"
                 self.labels_cronometros[id_estacion].config(text=texto_reloj, fg="#333333")
                 
-                minutos_cobro = segundos_totales // 60
-                if minutos_cobro == 0:
-                    minutos_cobro = 1  # Cobrar al menos un minuto
-                    
-                costo_actual = sesion.estacion.calcular_tarifa(minutos_cobro)
+                minutos_cobro = (segundos_totales // 60) + 1
                 
-                if costo_actual >= sesion.usuario.saldo_billetera:
+                costo_actual = sesion.estacion.calcular_tarifa(minutos_cobro)
+
+                if costo_actual > sesion.usuario.saldo_billetera:
                     self.labels_cronometros[id_estacion].config(text="Saldo Agotado", fg="red")
-                    self.cerrar_sesion(sesion.estacion)
+                    self.cerrar_sesion(sesion.estacion, es_corte_automatico=True)
                     
                     messagebox.showwarning(
                         "Corte Automático",
