@@ -266,9 +266,16 @@ class AppCyberReinoso(tk.Tk):
     def iniciar_sesion(self, maquina_seleccionada: EstacionTrabajo):
         """Se ejecuta cuando asignamos una pc"""
         
+        #Calculamos cuanto cuesta el primer minuto de la maquiana selecciona. Actua como variable de clase
+        costo_minimo = maquina_seleccionada.calcular_tarifa(1)
+        
         #Validacion de saldo
-        if self.usuario_prueba.saldo_billetera <= 0:
-            messagebox.showwarning("Saldo insuficiente", "El usuario no tiene saldo para iniciar una sesión. Por favor recargue la billetera.")
+        if self.usuario_prueba.saldo_billetera <= costo_minimo:
+            messagebox.showwarning(
+                "Saldo insuficiente", 
+                f"Para usar esta PC ({maquina_seleccionada.categoria}), el usuario necesita un minimo de S/{costo_minimo:.2f}.\n\n"
+                f"Saldo actual: S/ {self.usuario_prueba.saldo_billetera:.2f}. Por favor recargue la billetera."
+            )
             return #Cortamos la ejecucion para que no se inicie la sesion si no tiene saldo
         
         nueva_sesion = Sesion(id_sesion=999, usuario=self.usuario_prueba, estacion=maquina_seleccionada)
