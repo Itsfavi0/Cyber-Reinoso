@@ -68,6 +68,21 @@ BEGIN
 END
 GO
 
+IF OBJECT_ID('VentasKiosco', 'U') IS NULL
+BEGIN
+    CREATE TABLE Ventas_Kiosco (
+    id_venta INT IDENTITY(1,1) PRIMARY KEY,
+    id_usuario INT,
+    id_producto INT,
+    monto DECIMAL(10,2),
+    fecha_venta DATETIME DEFAULT GETDATE(),
+    CONSTRAINT FK_Usuario_Kiosco FOREIGN KEY (id_usuario) REFERENCES Usuarios(id_usuario),
+    CONSTRAINT FK_Producto_Kiosco FOREIGN KEY (id_producto) REFERENCES Productos(id_producto)
+    )
+    PRINT 'Tabla VentasKiosco creada correctamente'
+END
+GO
+
 INSERT INTO Usuarios (alias_gamer, rango_cuenta, saldo_billetera)
 VALUES ('Itsfavi0', 'VIP', 50.00)
 GO
