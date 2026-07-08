@@ -192,7 +192,7 @@ class DBManager:
                 consulta = "UPDATE Usuarios SET saldo_billetera = ? WHERE id_usuario = ?"
                 cursor.execute(consulta, (nuevo_saldo, id_usuario))
                 conn.commit()
-                print(f"Base de datos actualizada con éxito | id_usuario: {id_usuario} Nuevo Saldo: {nuevo_saldo:.2f}")
+                print(f"Base de datos actualizada con éxito | id_usuario: {id_usuario} | Nuevo Saldo: {nuevo_saldo:.2f}")
             except pyodbc.Error as e:
                 print(f"Error al actualizar saldo: {e}")
             finally:
@@ -240,6 +240,32 @@ class DBManager:
             finally:
                 cursor.close()
                 conn.close()
+    
+    def obtener_reporte_caja_hoy(self):
+        conn = self.conectar()
+        total_ingresos = 0.0
+        
+        if conn:
+            try:
+                cursor = conn.cursor()
+                #Usamos CAST(GETDAY() AS DATE)
+                consulta = """
+                    SELECT SUM(monto_cobrado)
+                    FROM Sesiones
+                    WHERE CAST(hora_fin AS DATE) = CAST(GETDATE() AS DATE)
+                """
+                cursor.execute(consulta)
+                resultado = cursor.fetchone()
+                
+                if resultado and resultado[0] is not None:
+                    total_ingresos = float(resultado[0])
+                    
+            except pyodbc.Error as e:
+                print(f"Error al generar reporte de caja: {e}")
+            finally:
+                cursor.close()
+                conn.close()
+        return total_ingresos
     
 if __name__ == "__main__":
     manager = DBManager()

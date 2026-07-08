@@ -208,6 +208,17 @@ class AppCyberReinoso(tk.Tk):
         )
         btn_registrar.pack(fill=tk.X, pady=(15,0))
         
+        # Botón para el cierre de turno / Cuadre de caja
+        btn_caja = tk.Button(
+            self.frame_panel,
+            text="Reporte de Caja (Hoy)",
+            font=("Arial", 10, "bold"),
+            bg="#ffcc80",
+            fg="#e65100",
+            command=self.abrir_reporte_caja
+        )
+        btn_caja.pack(fill=tk.X, pady=(10, 0))
+        
     def cambiar_usuario_activo(self,event):
         """Se ejecuta cada vez que el cajero elige un nombre distinto en la lista desplegable"""
         seleccion = self.combo_usuarios.get()
@@ -534,7 +545,39 @@ class AppCyberReinoso(tk.Tk):
         #Le decimos a Tkinter que vuelva a ejecutar esta función en 1000 milisegundos (1 segundo)
         self.after(1000, self.actualizar_cronometros)
     
-    
+    def abrir_reporte_caja(self):
+        """Genera una ventana emergente con el resumen financiero del dia"""
+        db = DBManager()
+        total_hoy = db.obtener_reporte_caja_hoy()
+        
+        ventana_caja = tk.Toplevel(self)
+        ventana_caja.title("Cuadre de Caja - Cyber Reinoso")
+        ventana_caja.geometry("320x280")
+        ventana_caja.config(bg="#f4f4f9")
+        ventana_caja.resizable(False, False)
+        ventana_caja.grab_set() # Bloquea la ventana principal
+        
+        #DISEÑO DEL VOUCHER
+        tk.Label(ventana_caja, text="Cierre de Turno", font=("Arial", 14, "bold"), bg="#f4f4f9", fg="#333333").pack(pady=15)
+        tk.Label(ventana_caja, text=f"Fecha: {datetime.now().strftime('%d/%m/%Y')}", font=("Arial", 10), bg="#f4f4f9", fg="#555555").pack()
+        
+        # Contenedor blanco estilo "ticket"
+        frame_total = tk.Frame(ventana_caja, bg="#ffffff", bd=2, relief="groove")
+        frame_total.pack(pady=15, padx=20, fill=tk.BOTH, expand=True)
+        
+        tk.Label(frame_total, text="Total Ingresos (Alquiler PCs)", font=("Arial", 10), bg="#ffffff").pack(pady=(15, 5))
+        
+        # El número grande en verde
+        tk.Label(frame_total, text=f"S/ {total_hoy:.2f}", font=("Arial", 20, "bold"), bg="#ffffff", fg="green").pack(pady=5)
+        
+        # Botón de cierre
+        tk.Button(
+            ventana_caja, 
+            text="Validar y Cerrar", 
+            font=("Arial", 10, "bold"), 
+            bg="#e0e0e0", 
+            command=ventana_caja.destroy
+        ).pack(pady=10)
     
 if __name__ == "__main__":
     app = AppCyberReinoso()
