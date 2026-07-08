@@ -13,7 +13,7 @@ class AppCyberReinoso(tk.Tk):
 
         # Ventana básica
         self.title("Cyber Reinoso - Smart Center Dashboard")
-        self.geometry("900x700")
+        self.geometry("900x800")
         self.config(bg="#f4f4f9")
         
         # inicializar base de datos simulada en memoria por ahora
@@ -180,6 +180,16 @@ class AppCyberReinoso(tk.Tk):
         self.lbl_saldo_valor = tk.Label(self.frame_panel, text=f"S/ {usuario.saldo_billetera:.2f}",
                                         font=("Arial", 16, "bold"), bg="#f4f4f9", fg="green")
         self.lbl_saldo_valor.pack(anchor="w", pady=(0, 20))
+        
+        btn_recargar = tk.Button(
+            self.frame_panel,
+            text="Recargar Billetera",
+            font=("Arial", 10, "bold"),
+            bg="#a5d6a7",
+            fg="#1b5e20",
+            command=self.abrir_ventana_recarga
+        )
+        btn_recargar.pack(anchor="w", pady=(0, 15))
         
         #Kiosco
         self.frame_tienda = tk.LabelFrame(self.frame_panel, text="Kiosco Cyber", font=("Arial", 12, "bold"), bg="#f0f0f0", padx=10, pady=10)
@@ -377,6 +387,55 @@ class AppCyberReinoso(tk.Tk):
             ventana.destroy()
         else:
             messagebox.showerror("Error del Sistema", "No se pudo completar el registro en la Base de Datos.", parent=ventana)            
+     
+    def abrir_ventana_recarga(self):
+        """Abre una ventana modal para inyectar saldo al usuario activo"""
+        usuario_actual = self.usuario_prueba
+        
+        ventana_recarga = tk.Toplevel(self)
+        ventana_recarga.title("Recarga de billetera")
+        ventana_recarga.geometry("300x250")
+        ventana_recarga.config(bg="#f4f4f9")
+        ventana_recarga.resizable(False, False)
+        ventana_recarga.grab_set() #ventana modal
+        
+        tk.Label(ventana_recarga, text="Caja - Recarga Saldo", font=("Arial", 12, "bold"), bg="#f4f4f9").pack(pady=15)
+        tk.Label(ventana_recarga, text=f"Gamer: {usuario_actual.alias_gamer}", font=("Arial", 11), bg="#f4f4f9").pack()
+        tk.Label(ventana_recarga, text=f"Saldo Actual: S/ {usuario_actual.saldo_billetera:.2f}", font=("Arial", 10), fg="gray", bg="#f4f4f9").pack(pady=(0, 15))
+        
+        tk.Label(ventana_recarga, text="Monto a recargar (S/):", font=("Arial", 10, "bold"), bg="#f4f4f9").pack()
+        
+        entry_monto = tk.Entry(ventana_recarga, font=("Arial", 14), width=15, justify="center")
+        entry_monto.pack(pady=10)
+        entry_monto.focus()
+        
+        btn_confirmar = tk.Button(
+            ventana_recarga,
+            text="Confirmar Recarga",
+            bg="#c8e6c9",
+            font=("Arial", 10, "bold"),
+            command=lambda: self.procesar_recarga(entry_monto.get(), ventana_recarga)
+        )
+        btn_confirmar.pack(pady=15)
+        
+    def procesar_recarga(self, monto_texto, ventana):
+        """"Valida el dinero, actualiza el modelo y guarda en la base de datos"""
+        try:
+            monto = float(monto_texto)
+            if monto <= 0:
+                raise ValueError
+        except ValueError:
+            messagebox.showwarning("Error", "Ingresa un monto numérico mayor a cero")
+            return
+        
+        self.usuario_prueba.recargar_saldo(monto)
+        
+        db = DBManager()
+        db.actualizar_saldo_usuario(self.usuario_prueba.id_usuario, self.usuario_prueba.saldo_billetera)
+        
+        self.dibujar_panel_usuario()
+        messagebox.showinfo("Recarga Exitosa", f"Se ha recargado S/ {monto:.2f} a la billetera de {self.usuario_prueba.alias_gamer}.\nNuevo saldo: S/ {self.usuario_prueba.saldo_billetera:.2f}")
+        ventana.destroy()
             
     def cerrar_sesion(self, maquina_seleccionada: EstacionTrabajo):
         """Se ejecuta al hacer clic en Cerrar Sesión"""
@@ -401,7 +460,7 @@ class AppCyberReinoso(tk.Tk):
                     sesion_actual.monto_cobrado
                 )
                 
-                messagebox.showinfo("Sesión Finalizada", f"Cobro exitoso.\nNuevo saldo: S/ {usuario_original.saldo_billetera:.2f}")        
+                messagebox.showinfo("Sesión Finalizada", f"Cobro a usuario '{usuario_original.alias_gamer}' exitoso.\nNuevo saldo: S/ {usuario_original.saldo_billetera:.2f}")        
 
             except SaldoInsuficienteError as e:
                 messagebox.showerror("Error de Facturacion", f"Operacion denegada:\n{e}")
@@ -439,6 +498,8 @@ class AppCyberReinoso(tk.Tk):
                 
         #Le decimos a Tkinter que vuelva a ejecutar esta función en 1000 milisegundos (1 segundo)
         self.after(1000, self.actualizar_cronometros)
+    
+    
     
 if __name__ == "__main__":
     app = AppCyberReinoso()
