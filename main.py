@@ -2,6 +2,8 @@ import tkinter as tk
 from tkinter import messagebox
 from tkinter import ttk
 from conexion import DBManager
+from modulos_ui.ventanas_emergentes import VentanaRegistro, VentanaRecarga, VentanaReporteCaja
+from modulos_ui.panel_kiosco import PanelKiosco
 from modelos import Usuario, PC_Regular, PC_VIP, EstacionTrabajo, Sesion, SaldoInsuficienteError
 from datetime import datetime
 
@@ -53,9 +55,6 @@ class AppCyberReinoso(tk.Tk):
         else:
             print("No se encontró el usuario en la BD. Creando temporal...")
             self.usuario_prueba = Usuario(999, "Invitado", "Regular", 0.0)
-            
-        
-        self.lista_productos = db.obtener_productos()    
             
         self.sesiones_activas = {}
         
@@ -187,15 +186,14 @@ class AppCyberReinoso(tk.Tk):
             font=("Arial", 10, "bold"),
             bg="#a5d6a7",
             fg="#1b5e20",
-            command=self.abrir_ventana_recarga
+            command=lambda: VentanaRecarga(self, self.usuario_prueba, callback_actualizar=self.dibujar_panel_usuario)
         )
         btn_recargar.pack(anchor="w", pady=(0, 15))
         
-        #Kiosco
-        self.frame_tienda = tk.LabelFrame(self.frame_panel, text="Kiosco Cyber", font=("Arial", 12, "bold"), bg="#f0f0f0", padx=10, pady=10)
-        self.frame_tienda.pack(fill=tk.BOTH, expand=True, padx=10,pady=10)
-        
-        self.dibujar_productos_tienda()
+        # --- INSTANCIACIÓN DEL KIOSCO MODULAR ---
+        self.panel_kiosco = PanelKiosco(self.frame_panel, usuario, callback_actualizar_panel=self.dibujar_panel_usuario)
+        self.panel_kiosco.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        # ----------------------------------------
         
         #Boton para registrar usuarios
         btn_registrar = tk.Button(
@@ -204,7 +202,8 @@ class AppCyberReinoso(tk.Tk):
             font=("Arial", 10, "bold"),
             bg="#e1bee7",
             fg="#4a148c",
-            command=self.abrir_ventana_registro
+            #Llamamos a la clase y le pasamose el metodo para refrescar
+            command=lambda: VentanaRegistro(self,callback_actualizar=self.dibujar_panel_usuario)
         )
         btn_registrar.pack(fill=tk.X, pady=(15,0))
         
@@ -215,7 +214,7 @@ class AppCyberReinoso(tk.Tk):
             font=("Arial", 10, "bold"),
             bg="#ffcc80",
             fg="#e65100",
-            command=self.abrir_reporte_caja
+            command=lambda: VentanaReporteCaja(self)
         )
         btn_caja.pack(fill=tk.X, pady=(10, 0))
         
@@ -235,44 +234,6 @@ class AppCyberReinoso(tk.Tk):
                 datos_usr["saldo_billetera"]
             )
         self.dibujar_panel_usuario()
-    
-    def dibujar_productos_tienda(self):
-        """Limpia los botones actuales del kiosco y los vuelve a renderizar con el stock real"""
-        for widget in self.frame_tienda.winfo_children():
-            widget.destroy()
-        
-        lbl_igv = tk.Label(self.frame_tienda, text="* Todos los precios incluyen IGV", font=("Arial", 8, "italic"), bg="#f0f0f0", fg="#555555")
-        lbl_igv.pack(pady=(5,15), anchor=tk.CENTER)
-        
-        for prod in self.lista_productos:
-            nombre = prod["nombre_producto"]
-            precio = prod["precio"]
-            stock  = prod["stock"]
-            
-            color_boton = "#bbdefb"
-            if "Cuate" in nombre or "Snack" in nombre:
-                color_boton = "#ffe0b2"
-            elif "Recarga" in nombre:
-                color_boton = "#c8e6c9"
-                
-            if stock > 0:
-                texto_boton = f"{nombre} ({stock} und)- S/{precio:.2f}"
-                estado_boton = tk.NORMAL
-            else:
-                texto_boton = f"{nombre} (AGOTADO) - S/{precio:.2f}"
-                estado_boton = tk.DISABLED
-                color_boton = "#e0e0e0"
-            
-            btn_prod = tk.Button(
-                self.frame_tienda, 
-                text=texto_boton, 
-                bg=color_boton, 
-                width=25,
-                state=estado_boton,
-                command=lambda n=nombre, p=precio: self.comprar_producto(n,p)
-            )
-            
-            btn_prod.pack(pady=5, anchor=tk.CENTER)
     
     def iniciar_sesion(self, maquina_seleccionada: EstacionTrabajo):
         """Se ejecuta cuando asignamos una pc"""
@@ -314,147 +275,6 @@ class AppCyberReinoso(tk.Tk):
             
         self.dibujar_mapa_pcs()
         
-    def comprar_producto(self, nombre_producto, precio):
-        """"Procesa la venta de un producto del kiosko y lo descuenta del saldo"""
-        #Validacion
-        if self.usuario_prueba.saldo_billetera < precio:
-            messagebox.showwarning("Saldo Insuficiente", f"No hay saldo suficiente para comprar {nombre_producto}.")
-            return
-        
-        self.usuario_prueba.descontar_saldo(precio)
-        
-        db = DBManager()
-        db.actualizar_saldo_usuario(self.usuario_prueba.id_usuario, self.usuario_prueba.saldo_billetera)
-        #restamos el stock
-        db.restar_stock_producto(nombre_producto)
-        
-        #actualizamos la memoria local
-        self.lista_productos = db.obtener_productos()
-        
-        self.lbl_saldo_valor.config(text=f"S/ {self.usuario_prueba.saldo_billetera:.2f}")
-        self.dibujar_productos_tienda() #Redibujamos los productos
-        
-        messagebox.showinfo("Venta exitosa", f"Se vendió: {nombre_producto}\nTotal cobrado: S/{precio:.2f}\nNuevo Saldo: S/{self.usuario_prueba.saldo_billetera:.2f}")
-       
-    def abrir_ventana_registro(self):
-        """Crea una ventana emergente flotante para ingresar los datos del nuevo Usuario"""
-        ventana_reg = tk.Toplevel(self)
-        ventana_reg.title("Registrar Nuevo Usuario")
-        #ventana_reg.geometry("350x320")
-        ventana_reg.config(bg="#f4f4f9")
-        ventana_reg.resizable(False,False)
-        
-        #Bloquea la ventana principal hasta que se cierre la emergente
-        ventana_reg.grab_set()
-        
-        #Diseño
-        lbl_v_titulo = tk.Label(ventana_reg, text="Ficha de Nuevo Gamer", font=("Arial", 14, "bold"), bg="#f4f4f9", fg="#333333")
-        lbl_v_titulo.pack(pady=15)
-        
-        #alias
-        tk.Label(ventana_reg, text="Alias Gamer:", font=("Arial", 10), bg="#f4f4f9").pack(anchor="w", padx=30)
-        entry_alias = tk.Entry(ventana_reg, font=("Arial", 11), width=30)
-        entry_alias.pack(pady=(2,10), padx=30)
-        
-        #rango
-        tk.Label(ventana_reg, text="Rango Cuenta:", font=("Arial", 10), bg="#f4f4f9").pack(anchor="w", pady=30)
-        rango_var = tk.StringVar(value="Regular")
-        menu_rango = tk.OptionMenu(ventana_reg, rango_var, "Regular", "VIP")
-        menu_rango.config(font=("Arial", 10), width=26, bg="#ffffff")
-        menu_rango.pack(pady=(2,10), padx=30)
-        
-        #saldo inicial
-        tk.Label(ventana_reg, text="Saldo Inicial (S/):", font=("Arial", 10), bg="#f4f4f9").pack(anchor="w", pady=30)
-        entry_saldo = tk.Entry(ventana_reg, font=("Arial", 11), width=30)
-        entry_saldo.insert(0, "0.00")
-        entry_saldo.pack(pady=(2,15), padx=30)
-        entry_saldo.bind("<FocusIn>", lambda event: (entry_saldo.delete(0, tk.END), entry_saldo.config(fg="#000000")) if entry_saldo.get() == "0.00" else None)
-        entry_saldo.bind("<FocusOut>", lambda event: (entry_saldo.insert(0, "0.00"), entry_saldo.config(fg="#555555")) if entry_saldo.get().strip() == "" else None)
-        
-        #boton guardar
-        btn_guardar = tk.Button(
-            ventana_reg, 
-            text="Guardar Usuario",
-            font=("Arial", 11, "bold"),
-            bg="#c8e6c9", 
-            fg="#1b5e20",
-            command=lambda: self.procesar_registro_usuario(entry_alias.get(), rango_var.get(), entry_saldo.get(), ventana_reg)
-        )
-        btn_guardar.pack(pady=10)
-        
-    def procesar_registro_usuario(self, alias, rango, saldo_texto, ventana):
-        """"Valida las entradas del cajero y las manda a nuestro DAO"""
-        #validacion alias vacio
-        if not alias.strip():
-            messagebox.showwarning("Formulario Incompleto", "El campo 'Alias Gamer' no puede estar vacío", parent=ventana)
-            return
-        
-        try:
-            saldo_inicial = float(saldo_texto)
-            if saldo_inicial < 0:
-                raise ValueError
-        except ValueError:
-            messagebox.showwarning("Error de Formato", "El saldo debe ser un número positivo válido", parent=ventana)
-            return
-        
-        db = DBManager()
-        exito = db.registrar_usuario(alias.strip(), rango, saldo_inicial)
-        
-        if exito:
-            messagebox.showinfo("Registro Exitoso", f"El Usuario '{alias}' ha sido incorporado al sistema correctamente")
-            ventana.destroy()
-        else:
-            messagebox.showerror("Error del Sistema", "No se pudo completar el registro en la Base de Datos.", parent=ventana)            
-     
-    def abrir_ventana_recarga(self):
-        """Abre una ventana modal para inyectar saldo al usuario activo"""
-        usuario_actual = self.usuario_prueba
-        
-        ventana_recarga = tk.Toplevel(self)
-        ventana_recarga.title("Recarga de billetera")
-        ventana_recarga.geometry("300x250")
-        ventana_recarga.config(bg="#f4f4f9")
-        ventana_recarga.resizable(False, False)
-        ventana_recarga.grab_set() #ventana modal
-        
-        tk.Label(ventana_recarga, text="Caja - Recarga Saldo", font=("Arial", 12, "bold"), bg="#f4f4f9").pack(pady=15)
-        tk.Label(ventana_recarga, text=f"Gamer: {usuario_actual.alias_gamer}", font=("Arial", 11), bg="#f4f4f9").pack()
-        tk.Label(ventana_recarga, text=f"Saldo Actual: S/ {usuario_actual.saldo_billetera:.2f}", font=("Arial", 10), fg="gray", bg="#f4f4f9").pack(pady=(0, 15))
-        
-        tk.Label(ventana_recarga, text="Monto a recargar (S/):", font=("Arial", 10, "bold"), bg="#f4f4f9").pack()
-        
-        entry_monto = tk.Entry(ventana_recarga, font=("Arial", 14), width=15, justify="center")
-        entry_monto.pack(pady=10)
-        entry_monto.focus()
-        
-        btn_confirmar = tk.Button(
-            ventana_recarga,
-            text="Confirmar Recarga",
-            bg="#c8e6c9",
-            font=("Arial", 10, "bold"),
-            command=lambda: self.procesar_recarga(entry_monto.get(), ventana_recarga)
-        )
-        btn_confirmar.pack(pady=15)
-        
-    def procesar_recarga(self, monto_texto, ventana):
-        """"Valida el dinero, actualiza el modelo y guarda en la base de datos"""
-        try:
-            monto = float(monto_texto)
-            if monto <= 0:
-                raise ValueError
-        except ValueError:
-            messagebox.showwarning("Error", "Ingresa un monto numérico mayor a cero")
-            return
-        
-        self.usuario_prueba.recargar_saldo(monto)
-        
-        db = DBManager()
-        db.actualizar_saldo_usuario(self.usuario_prueba.id_usuario, self.usuario_prueba.saldo_billetera)
-        
-        self.dibujar_panel_usuario()
-        messagebox.showinfo("Recarga Exitosa", f"Se ha recargado S/ {monto:.2f} a la billetera de {self.usuario_prueba.alias_gamer}.\nNuevo saldo: S/ {self.usuario_prueba.saldo_billetera:.2f}")
-        ventana.destroy()
-            
     def cerrar_sesion(self, maquina_seleccionada: EstacionTrabajo, es_corte_automatico=False):
         """Se ejecuta al hacer clic en Cerrar Sesión o automaticamente por el saldo del usuario"""
         # Buscamos en nuestro registro las sesion actual
@@ -544,40 +364,6 @@ class AppCyberReinoso(tk.Tk):
                     
         #Le decimos a Tkinter que vuelva a ejecutar esta función en 1000 milisegundos (1 segundo)
         self.after(1000, self.actualizar_cronometros)
-    
-    def abrir_reporte_caja(self):
-        """Genera una ventana emergente con el resumen financiero del dia"""
-        db = DBManager()
-        total_hoy = db.obtener_reporte_caja_hoy()
-        
-        ventana_caja = tk.Toplevel(self)
-        ventana_caja.title("Cuadre de Caja - Cyber Reinoso")
-        ventana_caja.geometry("320x280")
-        ventana_caja.config(bg="#f4f4f9")
-        ventana_caja.resizable(False, False)
-        ventana_caja.grab_set() # Bloquea la ventana principal
-        
-        #DISEÑO DEL VOUCHER
-        tk.Label(ventana_caja, text="Cierre de Turno", font=("Arial", 14, "bold"), bg="#f4f4f9", fg="#333333").pack(pady=15)
-        tk.Label(ventana_caja, text=f"Fecha: {datetime.now().strftime('%d/%m/%Y')}", font=("Arial", 10), bg="#f4f4f9", fg="#555555").pack()
-        
-        # Contenedor blanco estilo "ticket"
-        frame_total = tk.Frame(ventana_caja, bg="#ffffff", bd=2, relief="groove")
-        frame_total.pack(pady=15, padx=20, fill=tk.BOTH, expand=True)
-        
-        tk.Label(frame_total, text="Total Ingresos (Alquiler PCs)", font=("Arial", 10), bg="#ffffff").pack(pady=(15, 5))
-        
-        # El número grande en verde
-        tk.Label(frame_total, text=f"S/ {total_hoy:.2f}", font=("Arial", 20, "bold"), bg="#ffffff", fg="green").pack(pady=5)
-        
-        # Botón de cierre
-        tk.Button(
-            ventana_caja, 
-            text="Validar y Cerrar", 
-            font=("Arial", 10, "bold"), 
-            bg="#e0e0e0", 
-            command=ventana_caja.destroy
-        ).pack(pady=10)
     
 if __name__ == "__main__":
     app = AppCyberReinoso()
