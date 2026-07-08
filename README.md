@@ -1,31 +1,62 @@
 # Cyber Reinoso - Smart Center Dashboard
 
-Sistema de gestión para Lan Centers y cibercafés, diseñado con Arquitectura Orientada a Objetos y persistencia de datos relacional. Este proyecto maneja la asignación de estaciones de trabajo, control de tiempos y facturación en tiempo real.
+Un sistema integral de escritorio (Desktop App) desarrollado en Python para la gestión operativa, financiera y de inventario de un Lan Center / Cibercafé. El proyecto aplica principios sólidos de Programación Orientada a Objetos (POO) y el patrón arquitectónico DAO para garantizar un bajo acoplamiento con la base de datos.
 
-## Características (v1.1)
-* **Gestión de Estaciones:** Renderizado dinámico del mapa de computadoras (PCs Regulares y VIP) desde la base de datos.
-* **Control de Sesiones:** Asignación y liberación de equipos con cambio de estado visual y actualización en base de datos.
-* **Sistema de Cobros:** Cálculo automático de tarifas basado en el tiempo de uso y categoría de la PC.
-* **Billetera Digital Persistente:** Descuento en vivo del saldo del usuario al cerrar la sesión, guardando el capital real en SQL Server.
+## Características Principales (MVP)
 
-## Tecnologías Utilizadas
-* **Lenguaje:** Python 3
-* **Interfaz Gráfica:** Tkinter
-* **Base de Datos:** SQL Server (pyodbc)
-* **Paradigma:** Programación Orientada a Objetos (Herencia, Polimorfismo, Encapsulamiento) y Patrón DAO.
+### Módulo de Gestión de PCs y Sesiones
+* **Panel Visual de Estado:** Mapeo en tiempo real de las estaciones de trabajo (Disponible, Ocupada, Mantenimiento).
+* **Cronómetro en Vivo:** Monitoreo segundo a segundo del tiempo transcurrido en cada máquina usando eventos de Tkinter.
+* **Kill Switch Automático (Seguridad):** Sistema de auditoría en segundo plano que calcula la tarifa dinámica por minuto y cierra la sesión de forma automática si el saldo del usuario se agota, liberando la PC y evitando pérdidas financieras.
+* **Tarifario Dinámico:** Aplicación de polimorfismo para calcular costos distintos según la categoría de la estación (`PC_Regular`, `PC_VIP`).
 
-## Instalación y Configuración
+### Módulo de Clientes (Gamers)
+* **Gestor de Usuarios:** Ventana modal (Toplevel) para registrar nuevos clientes directamente en la base de datos.
+* **Billetera Virtual:** Sistema de prepago con capacidad de recargar saldo y validación de saldo mínimo requerido (costo del primer minuto) para iniciar sesión.
+* **Selector Dinámico:** Cambio de usuario activo en caja mediante menú desplegable, refrescando la interfaz y el estado de la billetera en tiempo real.
+
+### Módulo de Kiosco e Inventario
+* **Renderizado Dinámico:** Los botones de productos se generan automáticamente leyendo el catálogo de SQL Server (Gaseosas, Snacks, etc.).
+* **Control de Stock:** Bloqueo visual automático de botones cuando un producto marca "Agotado".
+* **Cobro Integrado:** Descuento directo de la billetera virtual del cliente y reducción de stock en la base de datos tras cada venta.
+
+### Módulo Financiero
+* **Auditoría de Sesiones:** Registro histórico de cada sesión finalizada con su respectiva hora de inicio, fin y monto exacto cobrado.
+* **Cuadre de Caja (Turno):** Generación de reporte en tiempo real que suma los ingresos totales de alquileres de PC del día actual.
+
+## 🛠️ Stack Tecnológico y Arquitectura
+* **Lenguaje:** Python 3.x
+* **Interfaz Gráfica:** Tkinter (GUI nativa)
+* **Base de Datos:** Microsoft SQL Server (vía `pyodbc`)
+* **Arquitectura:** Data Access Object (DAO) para la separación entre la lógica de presentación (`main.py`) y el acceso a datos (`conexion.py`).
+
+## ⚙️ Instalación y Configuración
+
+1. Clonar el repositorio:
+   ```bash
+   git clone https://github.com/tu-usuario/cyber-reinoso.git
+   ```
+
 Para ejecutar este proyecto en tu máquina local, necesitas:
-1. Instalar el driver de conexión a SQL Server para Python:
+2. Instalar el driver de conexión a SQL Server para Python:
    ```bash
    pip install pyodbc
-2. Ejecutar el script 01_crear_esquema_mvp.sql en tu gestor de SQL Server para crear la base de datos CyberReinoso y sus tablas.
-3. Asegurarte de insertar los datos semilla (PCs y usuarios iniciales) mediante consultas SQL.
-4. Ejecutar el sistema:
+   ```
+
+3. Ejecutar el script estructura_db.sql en tu gestor de SQL Server para crear la base de datos CyberReinoso y sus tablas.
+
+4. Asegurarte de insertar los datos semilla (PCs y usuarios iniciales) mediante consultas SQL.
+
+5. Ejecutar el sistema:
+    ```bash
     python main.py
+    ```
 
 ## Estructura del Proyecto
 * **main.py:** Capa de presentación (Frontend interactivo Tkinter).
 * **modelos.py:** Capa de negocio (Lógica, entidades y cálculos matemáticos).
 * **conexion.py:** Capa de datos (Gestor DAO para comunicación con SQL Server).
-* **01_crear_esquema_mvp.sql:** Scripts de creación de infraestructura relacional.
+* **estructura_db.sql:** Scripts de creación de infraestructura relacional.
+
+## 👨‍💻 Autor
+Favio Brañez - Desarrollo y Arquitectura de Software
