@@ -3,6 +3,7 @@ from tkinter import messagebox
 from tkinter import ttk
 from conexion import DBManager
 from modulos_ui.ventanas_emergentes import VentanaRegistro, VentanaRecarga, VentanaReporteCaja
+from modulos_ui.ventana_login import VentanaLogin
 from modulos_ui.panel_kiosco import VentanaTienda
 from modelos import Usuario, PC_Regular, PC_VIP, EstacionTrabajo, Sesion, SaldoInsuficienteError
 from datetime import datetime
@@ -12,11 +13,18 @@ class AppCyberReinoso(tk.Tk):
     def __init__(self):
         super().__init__()
         self.sesiones_activas = {}
+        self.empleado_actual = None
+        
+        # Ocultamos la ventana principal inmediatamente al arrancar
+        self.withdraw()
 
         # Ventana básica
         self.title("Cyber Reinoso - Smart Center Dashboard")
         self.geometry("900x800")
         self.config(bg="#f4f4f9")
+        
+        #Levantamos el escudo de seguridad bloqueando el flujo
+        VentanaLogin(self)
         
         # inicializar base de datos simulada en memoria por ahora
         self.cargar_datos_iniciales()

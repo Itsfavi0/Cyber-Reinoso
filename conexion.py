@@ -389,6 +389,32 @@ class DBManager:
                 
         return total_ingresos
     
+    def validar_login(self, usuario, clave):
+        """Busca las credenciales en la BD y retorna los datos del empleado si son correctas"""
+        conn = self.conectar()
+        if conn:
+            try:
+                cursor = conn.cursor()
+                consulta = "SELECT id_empleado, nombre, rol FROM Empleados WHERE usuario = ? AND clave = ?"
+                cursor.execute(consulta, (usuario, clave))
+                fila = cursor.fetchone()
+                
+                if fila:
+                    datos_empleado = {
+                        "id_empleado" : fila[0],
+                        "nombre" : fila[1],
+                        "rol" : fila[2]
+                    }
+                    print(f"Login exitoso: Bienvenido {datos_empleado["nombre"]}")
+                else:
+                    print(f"Intento de acceso fallido: Credenciales incorrectas")
+            except pyodbc.Error as e:
+                print(f"Error al validar credenciales en la BD: {e}")
+            finally:
+                cursor.close()
+                conn.close()
+        return datos_empleado
+    
 if __name__ == "__main__":
     manager = DBManager()
     #manager.probar_conexion()
