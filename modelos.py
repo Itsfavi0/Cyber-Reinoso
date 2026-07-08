@@ -25,13 +25,20 @@ class Usuario:
         if costo > self.saldo_billetera:
             raise SaldoInsuficienteError(f"Operación denegada. {self.alias_gamer} no tiene saldo suficiente.")
         self.__saldo_billetera -= costo
+        
+    def __str__(self):
+        return f"Gamer: {self.alias_gamer} | Rango: {self.rango_cuenta} | Saldo: S/{self.saldo_billetera:.2f}"
 
 # Superclase Abstracta
 class EstacionTrabajo(ABC):
+    total_pcs_registradas = 0
+    
     def __init__(self, id_estacion : int, codigo_pc: str):
         self.id_estacion = id_estacion
         self.codigo_pc = codigo_pc
         self.__estado = "Disponible"
+        
+        EstacionTrabajo.total_pcs_registradas += 1
         
     @property
     def estado(self):
@@ -103,3 +110,44 @@ class Sesion:
         
         self.usuario.descontar_saldo(self.monto_cobrado)
         self.estacion.estado = "Disponible"
+        
+    def __add__(self, otra_sesion):
+        """Permite sumar objetos Sesion directamente"""
+        if isinstance(otra_sesion, Sesion):
+            return self.monto_cobrado + otra_sesion.monto_cobrado
+        raise TypeError("Solo puedes sumar un objeto Sesion con otro objeto Sesion")
+    
+# --- PRUEBAS ---
+if __name__ == "__main__":
+    import time
+    
+    # 1. Creamos dos usuarios de prueba
+    gamer1 = Usuario(1, "Favio", "VIP", 50.00)
+    gamer2 = Usuario(2, "Sandro", "Regular", 20.00)
+    
+    # Imprimimos al usuario para probar el __str__
+    print(gamer1)
+    
+    # 2. Asignamos máquinas
+    pc1 = PC_VIP(1, "PC-01")
+    pc2 = PC_Regular(2, "PC-02")
+    
+    print(f"Total de PCs registradas en la clase: {EstacionTrabajo.total_pcs_registradas}")
+    
+    # 3. Iniciamos las sesiones
+    sesion1 = Sesion(101, gamer1, pc1)
+    sesion2 = Sesion(102, gamer2, pc2)
+    
+    print("Simulando tiempo de juego (espera 2 segundos)...")
+    time.sleep(2)
+    
+    # 4. Finalizamos las sesiones (esto calcula el dinero)
+    sesion1.finalizar_sesion()
+    sesion2.finalizar_sesion()
+    
+    # 5. Sumamos los objetos directamente, Python sabe que debe sumar los montos
+    total_grupal = sesion1 + sesion2
+    
+    print(f"Cobro PC 1: S/ {sesion1.monto_cobrado:.2f}")
+    print(f"Cobro PC 2: S/ {sesion2.monto_cobrado:.2f}")
+    print(f"Total a cobrar al grupo (usando s1 + s2): S/ {total_grupal:.2f}")
