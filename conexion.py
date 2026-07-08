@@ -99,10 +99,11 @@ class DBManager:
             try:
                 cursor = conn.cursor()
                 consulta = "UPDATE Productos SET stock = stock - 1 WHERE nombre_producto = ? AND stock > 0"
-                cursor.execute(consulta, (nombre_producto))
+                #Se añade una coma para que sea interpretado como tupla por pyodbc
+                cursor.execute(consulta, (nombre_producto,)) 
                 conn.commit()
                 print(f"Inventario actualizado con éxito | Producto: {nombre_producto} (-1 unidades)")
-            except pyodbc as e:
+            except pyodbc.Error as e:
                 print(f"Error al actualizar el stock: {e}")
             finally:
                 cursor.close()
@@ -161,8 +162,9 @@ class DBManager:
         if conn:
             try:
                 cursor =  conn.cursor()
+                #Se añade una coma para que sea una tupla de un solo elemento
                 cursor.execute(
-                    "SELECT * FROM Usuarios WHERE id_usuario = ?", (id_usuario)
+                    "SELECT * FROM Usuarios WHERE id_usuario = ?", (id_usuario,)
                 )
                 fila = cursor.fetchone()
                 
@@ -266,6 +268,80 @@ class DBManager:
                 cursor.close()
                 conn.close()
         return total_ingresos
+    
+    def registrar_inicio_sesion(self, id_usuario, id_estacion, hora_inicio):
+        """Inserta el inicio de una sesión en la BD con hora_fin NULL y retorna el ID autogenerado"""
+        conn = self.conectar()
+        id_sesion = None
+        if conn:
+            try:
+                cursor = conn.cursor()
+                consulta = """
+                    INSERT INTO Sesiones (id_usuario, id_estacion, hora_inicio, hora_fin, monto_cobrado)
+                    OUTPUT INSERTED.id_sesion
+                    VALUES (?, ?, ?, NULL, NULL)
+                """
+                cursor.execute(consulta, (id_usuario, id_estacion, hora_inicio))
+                id_sesion = cursor.fetchone()[0]
+                conn.commit()
+                print(f"Sesión de usuario {id_usuario} en PC {id_estacion} guardada en BD con ID: {id_sesion}")
+            except pyodbc.Error as e:
+                print(f"Error al registrar inicio de sesión en BD: {e}")
+            finally:
+                cursor.close()
+                conn.close()
+        return id_sesion
+    
+    def actualizar_fin_sesion(self, id_sesion, hora_fin, monto_cobrado):
+        """Completa el registro de una sesión existente al finalizarla"""
+        conn = self.conectar()
+        exito = False
+        if conn:
+            try:
+                cursor = conn.cursor()
+                consulta = """
+                    UPDATE Sesiones
+                    SET hora_fin = ?, monto_cobrado = ?
+                    WHERE id_sesion = ?
+                """
+                cursor.execute(consulta, (hora_fin, monto_cobrado, id_sesion))
+                conn.commit()
+                exito = True
+                print(f"Sesión {id_sesion} finalizada en BD. Cobro: S/ {monto_cobrado:.2f}")
+            except pyodbc.Error as e:
+                print(f"Error al actualizar fin de sesión en BD: {e}")
+            finally:
+                cursor.close()
+                conn.close()
+        return exito
+    
+    def obtener_sesiones_activas(self):
+        """Busca todas las sesiones en la BD que no tienen hora_fin (activas antes de una caída)"""
+        conn = self.conectar()
+        lista_sesiones = []
+        if conn:
+            try:
+                cursor = conn.cursor()
+                consulta = """
+                    SELECT id_sesion, id_usuario, id_estacion, hora_inicio
+                    FROM Sesiones
+                    WHERE hora_fin IS NULL
+                """
+                cursor.execute(consulta)
+                filas = cursor.fetchall()
+                for fila in filas:
+                    lista_sesiones.append({
+                        "id_sesion": fila[0],
+                        "id_usuario": fila[1],
+                        "id_estacion": fila[2],
+                        "hora_inicio": fila[3]
+                    })
+            except pyodbc.Error as e:
+                print(f"Error al obtener sesiones activas: {e}")
+            finally:
+                cursor.close()
+                conn.close()
+        return lista_sesiones
     
     def registrar_venta_tienda(self, id_usuario, id_producto, monto):
         """Guarda el registro de una venta del kiosco en el historial"""

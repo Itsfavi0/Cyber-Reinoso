@@ -28,12 +28,12 @@ class AppCyberReinoso(tk.Tk):
     def cargar_datos_iniciales(self):
         """Extrae los datos de SQL y los convierte en objetos"""
         self.lista_pcs = []
+        self.sesiones_activas = {}
         
-        #instanciamos la conexion con la base de datos
         db = DBManager()
         datos_db = db.obtener_estaciones()
         
-        #Diccionarios a objetos
+        # Convertimos diccionarios a objetos EstacionTrabajo
         for fila in datos_db:
             if fila["categoria"] == "VIP":
                 pc = PC_VIP(fila["id_estacion"], fila["codigo_pc"])
@@ -43,8 +43,8 @@ class AppCyberReinoso(tk.Tk):
             pc.estado = fila["estado_actual"]
             self.lista_pcs.append(pc)
         
+        # Cargamos el usuario por defecto (ID 1)
         datos_usr = db.obtener_usuario(1)
-        
         if datos_usr:
             self.usuario_prueba = Usuario(
                 datos_usr["id_usuario"],
@@ -55,8 +55,30 @@ class AppCyberReinoso(tk.Tk):
         else:
             print("No se encontró el usuario en la BD. Creando temporal...")
             self.usuario_prueba = Usuario(999, "Invitado", "Regular", 0.0)
+        
+        sesiones_db = db.obtener_sesiones_activas()
+        for s in sesiones_db:
+            # Buscamos la instancia del objeto PC correspondiente
+            pc_obj = next((pc for pc in self.lista_pcs if pc.id_estacion == s["id_estacion"]), None)
             
-        self.sesiones_activas = {}
+            # Cargamos el usuario de esa sesión activa
+            datos_gamer = db.obtener_usuario(s["id_usuario"])
+            if pc_obj and datos_gamer:
+                gamer_obj = Usuario(
+                    datos_gamer["id_usuario"],
+                    datos_gamer["alias_gamer"],
+                    datos_gamer["rango_cuenta"],
+                    datos_gamer["saldo_billetera"]
+                )
+                # Reconstruimos la sesión en memoria con su hora de inicio real
+                sesion_recuperada = Sesion(
+                    id_sesion=s["id_sesion"],
+                    usuario=gamer_obj,
+                    estacion=pc_obj,
+                    hora_inicio=s["hora_inicio"]
+                )
+                self.sesiones_activas[pc_obj.id_estacion] = sesion_recuperada
+                print(f"Sesión restaurada con éxito: {pc_obj.codigo_pc} por {gamer_obj.alias_gamer}")
         
     def crear_interfaz(self):
         """Aquí maquetaremos los frames usando el gestor Grid o Pack"""
@@ -237,30 +259,35 @@ class AppCyberReinoso(tk.Tk):
     
     def iniciar_sesion(self, maquina_seleccionada: EstacionTrabajo):
         """Se ejecuta cuando asignamos una pc"""
-        
-        #Calculamos cuanto cuesta el primer minuto de la maquiana selecciona. Actua como variable de clase
         costo_minimo = maquina_seleccionada.calcular_tarifa(1)
         
-        #Validacion de saldo
+        # Validación de saldo
         if self.usuario_prueba.saldo_billetera < costo_minimo:
             messagebox.showwarning(
                 "Saldo insuficiente", 
                 f"Para usar esta PC ({maquina_seleccionada.categoria}), el usuario necesita un minimo de S/{costo_minimo:.2f}.\n\n"
                 f"Saldo actual: S/ {self.usuario_prueba.saldo_billetera:.2f}. Por favor recargue la billetera."
             )
-            return #Cortamos la ejecucion para que no se inicie la sesion si no tiene saldo
+            return
         
-        nueva_sesion = Sesion(id_sesion=999, usuario=self.usuario_prueba, estacion=maquina_seleccionada)
+        # 1. Avisamos a la base de datos para iniciar la sesión física y obtener el id_sesion
+        db = DBManager()
+        hora_inicio = datetime.now()
+        id_sesion_db = db.registrar_inicio_sesion(self.usuario_prueba.id_usuario, maquina_seleccionada.id_estacion, hora_inicio)
         
+        if id_sesion_db is None:
+            messagebox.showerror("Error", "No se pudo iniciar la sesión en la base de datos.")
+            return
+
+        # 2. Creamos el objeto de sesión con el ID real
+        nueva_sesion = Sesion(id_sesion=id_sesion_db, usuario=self.usuario_prueba, estacion=maquina_seleccionada, hora_inicio=hora_inicio)
         self.sesiones_activas[maquina_seleccionada.id_estacion] = nueva_sesion
         
+        # 3. Cambiamos el estado visual e interno
         maquina_seleccionada.estado = "Ocupada"
-        #avisamos a la base de datos
-        db = DBManager()
         db.actualizar_estado_pc(maquina_seleccionada.id_estacion, "Ocupada")
         
         print(f"Sesión iniciada en {maquina_seleccionada.codigo_pc} por {nueva_sesion.usuario.alias_gamer}")
-        # Confirmamos al usuario que la sesión ha sido iniciada
         messagebox.showinfo("Sesión Iniciada", f"Se asignó la {maquina_seleccionada.codigo_pc} a {self.usuario_prueba.alias_gamer}.\n¡Disfruta tu tiempo de juego!")
         
         self.refrescar_interfaz()
@@ -277,23 +304,21 @@ class AppCyberReinoso(tk.Tk):
         
     def cerrar_sesion(self, maquina_seleccionada: EstacionTrabajo, es_corte_automatico=False):
         """Se ejecuta al hacer clic en Cerrar Sesión o automaticamente por el saldo del usuario"""
-        # Buscamos en nuestro registro las sesion actual
         sesion_actual = self.sesiones_activas.get(maquina_seleccionada.id_estacion)
            
         if sesion_actual:
             usuario_original = sesion_actual.usuario
+            db = DBManager()
             try:
-                # Intentamos hacer el cobro en la memoria
+                # Intentamos cobrar en memoria
                 sesion_actual.finalizar_sesion()
                 
                 # Guardamos el nuevo saldo en la base de datos
-                db = DBManager()
                 db.actualizar_saldo_usuario(usuario_original.id_usuario, usuario_original.saldo_billetera)
                 
-                db.guardar_historial_sesion(
-                    usuario_original.id_usuario,
-                    maquina_seleccionada.id_estacion,
-                    sesion_actual.hora_inicio,
+                # CORREGIDO: Usamos el ID real de la sesión y actualizamos su estado final
+                db.actualizar_fin_sesion(
+                    sesion_actual.id_sesion,
                     sesion_actual.hora_fin,
                     sesion_actual.monto_cobrado
                 )
@@ -304,25 +329,24 @@ class AppCyberReinoso(tk.Tk):
                 if es_corte_automatico:
                     db.actualizar_saldo_usuario(usuario_original.id_usuario, 0.00)
                     
-                    db.guardar_historial_sesion(
-                        usuario_original.id_usuario, 
-                        maquina_seleccionada.id_estacion,
-                        sesion_actual.hora_inicio, 
-                        datetime.now, 
+                    # CORREGIDO: datetime.now() con paréntesis, y guardamos el fin de la sesión real
+                    db.actualizar_fin_sesion(
+                        sesion_actual.id_sesion,
+                        datetime.now(), 
                         usuario_original.saldo_billetera
                     )
                     messagebox.showwarning(
-                        "Corte Automatico",
-                        f"La sesión en {maquina_seleccionada.codigo_pc} se ha cerrado automaticamente.\n\n"
+                        "Corte Automático",
+                        f"La sesión en {maquina_seleccionada.codigo_pc} se ha cerrado automáticamente.\n\n"
                         f"El gamer {usuario_original.alias_gamer} consumió todo su saldo."
                     )    
                 else:
                     messagebox.showerror("Error de Facturacion", f"Operacion denegada:\n{e}")
-                    return #Cortamos la ejecucion para que la PC no se libere si no pagó
+                    return
             
-            # Si todo salió bien, liberamos la PC y actualizamos la base de datos    
-            del self.sesiones_activas[maquina_seleccionada.id_estacion]
-            db = DBManager()
+            # Liberamos la PC
+            if maquina_seleccionada.id_estacion in self.sesiones_activas:
+                del self.sesiones_activas[maquina_seleccionada.id_estacion]
             db.actualizar_estado_pc(maquina_seleccionada.id_estacion, "Disponible")
         
         self.dibujar_panel_usuario()
@@ -332,37 +356,27 @@ class AppCyberReinoso(tk.Tk):
         """Calcula el tiempo transcurrido de cada sesión y actualiza la interfaz visual"""
         tiempo_actual = datetime.now()
         
-        # Iteramos solo sobre las máquinas que tienen una sesión activa
         for id_estacion, sesion in list(self.sesiones_activas.items()):
             if id_estacion in self.labels_cronometros:
-                # Calculamos cuántos segundos han pasado
                 diferencia = tiempo_actual - sesion.hora_inicio
                 segundos_totales = int(diferencia.total_seconds())
                 
-                # Convertimos los segundos a formato HH:MM:SS
                 horas = segundos_totales // 3600
                 minutos = (segundos_totales % 3600) // 60
                 segundos = segundos_totales % 60
                 
-                # Formateamos el texto
                 texto_reloj = f"⏱️ {horas:02d}:{minutos:02d}:{segundos:02d}"
                 self.labels_cronometros[id_estacion].config(text=texto_reloj, fg="#333333")
                 
                 minutos_cobro = (segundos_totales // 60) + 1
-                
                 costo_actual = sesion.estacion.calcular_tarifa(minutos_cobro)
 
                 if costo_actual > sesion.usuario.saldo_billetera:
                     self.labels_cronometros[id_estacion].config(text="Saldo Agotado", fg="red")
+                    #Se elimina el messagebox.showwarning duplicado de aquí,
+                    # ya que cerrar_sesion con es_corte_automatico=True ya muestra el popup.
                     self.cerrar_sesion(sesion.estacion, es_corte_automatico=True)
                     
-                    messagebox.showwarning(
-                        "Corte Automático",
-                        f"La sesión en la {sesion.estacion.codigo_pc} se ha cerrado automaticamente.\n\n"
-                        f"El gamer {sesion.usuario.alias_gamer} ha consumido su saldo."
-                    )
-                    
-        #Le decimos a Tkinter que vuelva a ejecutar esta función en 1000 milisegundos (1 segundo)
         self.after(1000, self.actualizar_cronometros)
     
 if __name__ == "__main__":

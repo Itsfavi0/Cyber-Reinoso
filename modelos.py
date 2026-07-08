@@ -73,12 +73,13 @@ class PC_VIP(EstacionTrabajo):
         return round(minutos * tarifa_minuto, 2)
     
 class Sesion:
-    def __init__(self, id_sesion: int, usuario: Usuario, estacion: EstacionTrabajo):
+    def __init__(self, id_sesion: int, usuario: Usuario, estacion: EstacionTrabajo, hora_inicio=None):
         self.id_sesion = id_sesion
         self.usuario = usuario
         self.estacion = estacion
         
-        self.hora_inicio = datetime.now()
+        # Si se recupera de la BD, usamos su hora de inicio guardada; si es nueva, usamos datetime.now()
+        self.hora_inicio = hora_inicio if hora_inicio else datetime.now()
         self.hora_fin = None
         self.monto_cobrado = 0.0
         
