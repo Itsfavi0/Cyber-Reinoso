@@ -156,16 +156,27 @@ class VentanaReporteCaja(tk.Toplevel):
         
     def construir_interfaz(self):
         db = DBManager()
-        total_hoy = db.obtener_reporte_caja_hoy()
+        total_pcs = db.obtener_reporte_caja_hoy()
+        total_tienda = db.obtener_reporte_tienda_hoy()
         
-        tk.Label(self, text="📊 Cierre de Turno", font=("Arial", 14, "bold"), bg="#f4f4f9", fg="#333333").pack(pady=15)
+        # Matemática de caja
+        total_general = total_pcs + total_tienda
+        
+        tk.Label(self, text=" Cierre de Turno", font=("Arial", 14, "bold"), bg="#f4f4f9", fg="#333333").pack(pady=15)
         tk.Label(self, text=f"Fecha: {datetime.now().strftime('%d/%m/%Y')}", font=("Arial", 10), bg="#f4f4f9", fg="#555555").pack()
         
         frame_total = tk.Frame(self, bg="#ffffff", bd=2, relief="groove")
         frame_total.pack(pady=15, padx=20, fill=tk.BOTH, expand=True)
         
-        tk.Label(frame_total, text="Total Ingresos (Alquiler PCs)", font=("Arial", 10), bg="#ffffff").pack(pady=(15, 5))
-        tk.Label(frame_total, text=f"S/ {total_hoy:.2f}", font=("Arial", 20, "bold"), bg="#ffffff", fg="green").pack(pady=5)
+        # Desglose de ingresos
+        tk.Label(frame_total, text=f"Alquiler de PCs: S/ {total_pcs:.2f}", font=("Arial", 10), bg="#ffffff").pack(pady=(15, 2))
+        tk.Label(frame_total, text=f"Ventas del Kiosco: S/ {total_tienda:.2f}", font=("Arial", 10), bg="#ffffff").pack(pady=(0, 10))
+        
+        # Línea divisoria elegante
+        tk.Frame(frame_total, bg="#cccccc", height=1).pack(fill=tk.X, padx=20, pady=5)
+        
+        tk.Label(frame_total, text="TOTAL EN CAJA", font=("Arial", 10, "bold"), bg="#ffffff").pack(pady=(5, 0))
+        tk.Label(frame_total, text=f"S/ {total_general:.2f}", font=("Arial", 20, "bold"), bg="#ffffff", fg="green").pack(pady=(0, 15))
         
         tk.Button(
             self, 

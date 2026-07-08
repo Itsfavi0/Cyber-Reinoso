@@ -26,6 +26,7 @@ class PanelKiosco(tk.LabelFrame):
         lbl_igv.pack(pady=(5,15), anchor=tk.CENTER)
         
         for prod in self.lista_productos:
+            id_prod = prod["id_producto"]
             nombre = prod["nombre_producto"]
             precio = prod["precio"]
             stock  = prod["stock"]
@@ -50,38 +51,33 @@ class PanelKiosco(tk.LabelFrame):
                 bg=color_boton, 
                 width=25,
                 state=estado_boton,
-                command=lambda n=nombre, p=precio: self.comprar_producto(n, p)
+                command=lambda i=id_prod, n=nombre, p=precio: self.comprar_producto(i, n, p)
             )
             btn_prod.pack(pady=5, anchor=tk.CENTER)
             
-    def comprar_producto(self, nombre_producto, precio):
+    def comprar_producto(self, id_producto, nombre_producto, precio):
         """Procesa la venta y se comunica con el DAO"""
         if self.usuario_actual.saldo_billetera < precio:
             messagebox.showwarning("Saldo Insuficiente", f"No hay saldo suficiente para comprar {nombre_producto}.", parent=self)
             return
         
-        # 1. Descuento en modelo
         self.usuario_actual.descontar_saldo(precio)
         
-        # 2. Impacto en Base de Datos
         db = DBManager()
         db.actualizar_saldo_usuario(self.usuario_actual.id_usuario, self.usuario_actual.saldo_billetera)
         db.restar_stock_producto(nombre_producto)
         
-        # 3. Refrescar datos internos del Kiosco y redibujar botones
+        #Registramos la transacción en el historial financiero
+        db.registrar_venta_tienda(self.usuario_actual.id_usuario, id_producto, precio)
+        
         self.lista_productos = db.obtener_productos()
         self.dibujar_productos()
         
-        # 4. Mostramos el mensaje de éxito PRIMERO (mientras este panel aún existe)
         messagebox.showinfo(
             "Venta exitosa", 
-            f"Se vendió: {nombre_producto}\nTotal cobrado: S/{precio:.2f}\nNuevo Saldo: S/{self.usuario_actual.saldo_billetera:.2f}", 
+            f"Se vendió: {nombre_producto}\nTotal cobrado: S/ {precio:.2f}\nNuevo Saldo: S/ {self.usuario_actual.saldo_billetera:.2f}", 
             parent=self
         )
         
-        # 5. Avisar al main.py que actualice todo el panel derecho AL FINAL 
-        # (Esto destruirá este objeto PanelKiosco y creará uno nuevo)
         if self.callback_actualizar_panel:
             self.callback_actualizar_panel()
-            
-        messagebox.showinfo("Venta exitosa", f"Se vendió: {nombre_producto}\nTotal cobrado: S/{precio:.2f}\nNuevo Saldo: S/{self.usuario_actual.saldo_billetera:.2f}", parent=self)

@@ -267,6 +267,52 @@ class DBManager:
                 conn.close()
         return total_ingresos
     
+    def registrar_venta_tienda(self, id_usuario, id_producto, monto):
+        """Guarda el registro de una venta del kiosco en el historial"""
+        conn = self.conectar()
+        if conn:
+            try:
+                cursor = conn.cursor()
+                consulta = """
+                    INSERT INTO Ventas_Kiosco (id_usuario, id_producto, monto)
+                    VALUES (?, ?, ?)
+                """
+                cursor.execute(consulta, (id_usuario, id_producto, monto))
+                conn.commit()
+                print(f"Venta registrada en historial | ID Prod: {id_producto} | S/ {monto:.2f}")
+            except pyodbc.Error as e:
+                print(f"Error al registrar la venta en la BD: {e}")
+            finally:
+                cursor.close()
+                conn.close()
+                
+    def obtener_reporte_tienda_hoy(self):
+        """Calcula el total de ingresos por ventas de kiosco en el día actual"""
+        conn = self.conectar()
+        total_ingresos = 0.0
+        
+        if conn:
+            try:
+                cursor = conn.cursor()
+                consulta = """
+                    SELECT SUM(monto) 
+                    FROM Ventas_Kiosco 
+                    WHERE CAST(fecha_venta AS DATE) = CAST(GETDATE() AS DATE)
+                """
+                cursor.execute(consulta)
+                resultado = cursor.fetchone()
+                
+                if resultado and resultado[0] is not None:
+                    total_ingresos = float(resultado[0])
+                    
+            except pyodbc.Error as e:
+                print(f"Error al generar reporte de tienda: {e}")
+            finally:
+                cursor.close()
+                conn.close()
+                
+        return total_ingresos
+    
 if __name__ == "__main__":
     manager = DBManager()
     #manager.probar_conexion()
