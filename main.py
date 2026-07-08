@@ -3,7 +3,7 @@ from tkinter import messagebox
 from tkinter import ttk
 from conexion import DBManager
 from modulos_ui.ventanas_emergentes import VentanaRegistro, VentanaRecarga, VentanaReporteCaja
-from modulos_ui.panel_kiosco import PanelKiosco
+from modulos_ui.panel_kiosco import VentanaTienda
 from modelos import Usuario, PC_Regular, PC_VIP, EstacionTrabajo, Sesion, SaldoInsuficienteError
 from datetime import datetime
 
@@ -212,10 +212,18 @@ class AppCyberReinoso(tk.Tk):
         )
         btn_recargar.pack(anchor="w", pady=(0, 15))
         
-        # --- INSTANCIACIÓN DEL KIOSCO MODULAR ---
-        self.panel_kiosco = PanelKiosco(self.frame_panel, usuario, callback_actualizar_panel=self.dibujar_panel_usuario)
-        self.panel_kiosco.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-        # ----------------------------------------
+        # --- BOTÓN PARA ABRIR EL NUEVO KIOSCO POS ---
+        btn_abrir_tienda = tk.Button(
+            self.frame_panel,
+            text="Abrir Tienda / Snacks",
+            font=("Arial", 12, "bold"),
+            bg="#2196f3", # Azul vibrante
+            fg="white",
+            pady=10,
+            command=lambda: VentanaTienda(self, usuario, callback_actualizar_panel=self.dibujar_panel_usuario)
+        )
+        btn_abrir_tienda.pack(fill=tk.X, padx=10, pady=20)
+        # --------------------------------------------
         
         #Boton para registrar usuarios
         btn_registrar = tk.Button(

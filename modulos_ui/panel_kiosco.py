@@ -1,83 +1,190 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import ttk, messagebox
 from conexion import DBManager
 
-class PanelKiosco(tk.LabelFrame):
+class VentanaTienda(tk.Toplevel):
     def __init__(self, parent, usuario_actual, callback_actualizar_panel):
-        # Inicializamos el LabelFrame padre
-        super().__init__(parent, text="🛒 Kiosco Cyber", font=("Arial", 12, "bold"), bg="#f0f0f0", padx=10, pady=10)
-        
+        super().__init__(parent)
         self.usuario_actual = usuario_actual
         self.callback_actualizar_panel = callback_actualizar_panel
         
-        # El Kiosco es independiente, él mismo pide sus productos a la BD
+        # Variables de estado en memoria (El carrito)
+        self.carrito = {}  # Formato: {id_producto: {'nombre': str, 'precio': float, 'cantidad': int}}
+        self.total_carrito = 0.0
+        
+        self.title(f"Tienda y Snacks - Atendiendo a {self.usuario_actual.alias_gamer}")
+        self.geometry("900x600")
+        self.config(bg="#f4f4f9")
+        self.grab_set() # Bloquea la ventana principal
+        
         db = DBManager()
         self.lista_productos = db.obtener_productos()
         
-        self.dibujar_productos()
+        self.construir_interfaz()
         
-    def dibujar_productos(self):
-        """Renderiza los botones de la tienda leyendo la lista en memoria"""
-        # Limpiamos el frame por si se está redibujando tras una compra
-        for widget in self.winfo_children():
-            widget.destroy()
-            
-        lbl_igv = tk.Label(self, text="* Todos los precios incluyen IGV", font=("Arial", 8, "italic"), bg="#f0f0f0", fg="#555555")
-        lbl_igv.pack(pady=(5,15), anchor=tk.CENTER)
+    def construir_interfaz(self):
+        # --- ZONA IZQUIERDA: CATÁLOGO (Grid con Scroll) ---
+        frame_izquierdo = tk.Frame(self, bg="#f4f4f9")
+        frame_izquierdo.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=10, pady=10)
         
-        for prod in self.lista_productos:
-            id_prod = prod["id_producto"]
-            nombre = prod["nombre_producto"]
-            precio = prod["precio"]
-            stock  = prod["stock"]
-            
-            color_boton = "#bbdefb"
-            if "Cuate" in nombre or "Snack" in nombre:
-                color_boton = "#ffe0b2"
-            elif "Recarga" in nombre:
-                color_boton = "#c8e6c9"
-                
-            if stock > 0:
-                texto_boton = f"{nombre} ({stock} und) - S/{precio:.2f}"
-                estado_boton = tk.NORMAL
-            else:
-                texto_boton = f"{nombre} (AGOTADO) - S/{precio:.2f}"
-                estado_boton = tk.DISABLED
-                color_boton = "#e0e0e0"
-            
-            btn_prod = tk.Button(
-                self, 
-                text=texto_boton, 
-                bg=color_boton, 
-                width=25,
-                state=estado_boton,
-                command=lambda i=id_prod, n=nombre, p=precio: self.comprar_producto(i, n, p)
-            )
-            btn_prod.pack(pady=5, anchor=tk.CENTER)
-            
-    def comprar_producto(self, id_producto, nombre_producto, precio):
-        """Procesa la venta y se comunica con el DAO"""
-        if self.usuario_actual.saldo_billetera < precio:
-            messagebox.showwarning("Saldo Insuficiente", f"No hay saldo suficiente para comprar {nombre_producto}.", parent=self)
-            return
+        tk.Label(frame_izquierdo, text="Catálogo de Productos", font=("Arial", 14, "bold"), bg="#f4f4f9").pack(anchor="w", pady=(0, 10))
         
-        self.usuario_actual.descontar_saldo(precio)
+        # Sistema de Scroll con Canvas
+        canvas = tk.Canvas(frame_izquierdo, bg="#f4f4f9", highlightthickness=0)
+        scrollbar = ttk.Scrollbar(frame_izquierdo, orient="vertical", command=canvas.yview)
+        self.scrollable_frame = tk.Frame(canvas, bg="#f4f4f9")
         
-        db = DBManager()
-        db.actualizar_saldo_usuario(self.usuario_actual.id_usuario, self.usuario_actual.saldo_billetera)
-        db.restar_stock_producto(nombre_producto)
-        
-        #Registramos la transacción en el historial financiero
-        db.registrar_venta_tienda(self.usuario_actual.id_usuario, id_producto, precio)
-        
-        self.lista_productos = db.obtener_productos()
-        self.dibujar_productos()
-        
-        messagebox.showinfo(
-            "Venta exitosa", 
-            f"Se vendió: {nombre_producto}\nTotal cobrado: S/ {precio:.2f}\nNuevo Saldo: S/ {self.usuario_actual.saldo_billetera:.2f}", 
-            parent=self
+        self.scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
         )
         
+        canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        self.dibujar_tarjetas_productos()
+        
+        # --- ZONA DERECHA: CARRITO DE COMPRAS ---
+        frame_derecho = tk.Frame(self, bg="#ffffff", bd=2, relief="groove", width=350)
+        frame_derecho.pack(side=tk.RIGHT, fill=tk.Y, padx=10, pady=10)
+        frame_derecho.pack_propagate(False) # Evita que el frame se encoja
+        
+        tk.Label(frame_derecho, text="Carrito de Compras", font=("Arial", 12, "bold"), bg="#ffffff").pack(pady=10)
+        
+        # Tabla del carrito
+        columnas = ("Producto", "Cant", "Subtotal")
+        self.tree_carrito = ttk.Treeview(frame_derecho, columns=columnas, show="headings", height=15)
+        self.tree_carrito.heading("Producto", text="Producto")
+        self.tree_carrito.heading("Cant", text="Cant")
+        self.tree_carrito.heading("Subtotal", text="Subtotal")
+        
+        self.tree_carrito.column("Producto", width=160)
+        self.tree_carrito.column("Cant", width=40, anchor="center")
+        self.tree_carrito.column("Subtotal", width=80, anchor="e")
+        self.tree_carrito.pack(fill=tk.BOTH, expand=True, padx=10)
+        
+        self.btn_quitar = tk.Button(frame_derecho, text="❌ Quitar Seleccionado", font=("Arial", 9), bg="#ffcdd2", fg="#c62828", command=self.quitar_del_carrito)
+        self.btn_quitar.pack(fill=tk.X, padx=20, pady=(10, 0))
+        
+        # Zona de Totales y Pago
+        self.lbl_total = tk.Label(frame_derecho, text="Total (Inc. IGV): S/ 0.00", font=("Arial", 14, "bold"), bg="#ffffff", fg="#333333")
+        self.lbl_total.pack(pady=15)
+        
+        self.lbl_saldo_disp = tk.Label(frame_derecho, text=f"Saldo Billetera: S/ {self.usuario_actual.saldo_billetera:.2f}", font=("Arial", 10), bg="#ffffff", fg="gray")
+        self.lbl_saldo_disp.pack(pady=(0, 10))
+        
+        self.btn_pagar = tk.Button(frame_derecho, text="Procesar Pago", font=("Arial", 12, "bold"), bg="#4caf50", fg="white", state=tk.DISABLED, command=self.procesar_pago_lote)
+        self.btn_pagar.pack(fill=tk.X, padx=20, pady=10)
+
+    def dibujar_tarjetas_productos(self):
+        columnas_maximas = 3
+        
+        for index, prod in enumerate(self.lista_productos):
+            fila = index // columnas_maximas
+            columna = index % columnas_maximas
+            
+            # Tarjeta individual
+            card = tk.Frame(self.scrollable_frame, bg="#ffffff", bd=1, relief="ridge", padx=10, pady=10)
+            card.grid(row=fila, column=columna, padx=10, pady=10, sticky="nsew")
+            
+            # Placeholder para futura imagen
+            tk.Frame(card, bg="#e0e0e0", width=100, height=80).pack(pady=(0, 10))
+            
+            tk.Label(card, text=prod["nombre_producto"], font=("Arial", 10, "bold"), bg="#ffffff", wraplength=120).pack()
+            tk.Label(card, text=f"S/ {prod['precio']:.2f}", font=("Arial", 12, "bold"), bg="#ffffff", fg="#2e7d32").pack(pady=2)
+            
+            estado_stock = f"Stock: {prod['stock']}"
+            color_stock = "gray" if prod['stock'] > 0 else "red"
+            tk.Label(card, text=estado_stock, font=("Arial", 9), bg="#ffffff", fg=color_stock).pack(pady=(0, 10))
+            
+            estado_btn = tk.NORMAL if prod['stock'] > 0 else tk.DISABLED
+            tk.Button(card, text="Agregar", bg="#bbdefb", state=estado_btn, command=lambda p=prod: self.agregar_al_carrito(p)).pack(fill=tk.X)
+
+    def agregar_al_carrito(self, producto):
+        id_prod = producto["id_producto"]
+        
+        # Validar que no exceda el stock real
+        cant_actual = self.carrito.get(id_prod, {}).get("cantidad", 0)
+        if cant_actual >= producto["stock"]:
+            messagebox.showwarning("Stock Insuficiente", "No hay más unidades disponibles de este producto.")
+            return
+
+        if id_prod in self.carrito:
+            self.carrito[id_prod]["cantidad"] += 1
+        else:
+            self.carrito[id_prod] = {
+                "nombre": producto["nombre_producto"],
+                "precio": producto["precio"],
+                "cantidad": 1
+            }
+            
+        self.actualizar_vista_carrito()
+
+    def actualizar_vista_carrito(self):
+        # Limpiar tabla
+        for item in self.tree_carrito.get_children():
+            self.tree_carrito.delete(item)
+            
+        self.total_carrito = 0.0
+        
+        # Rellenar tabla y sumar
+        for id_prod, datos in self.carrito.items():
+            subtotal = datos["precio"] * datos["cantidad"]
+            self.total_carrito += subtotal
+            # NUEVO: Le inyectamos el id_prod al parámetro 'iid' (Internal ID)
+            self.tree_carrito.insert("", "end", iid=id_prod, values=(datos["nombre"], datos["cantidad"], f"S/ {subtotal:.2f}"))
+            
+        self.lbl_total.config(text=f"Total (Inc. IGV): S/ {self.total_carrito:.2f}")
+        
+        # Lógica de habilitación del botón de pago
+        if self.total_carrito > 0 and self.total_carrito <= self.usuario_actual.saldo_billetera:
+            self.btn_pagar.config(state=tk.NORMAL)
+            self.lbl_total.config(fg="green")
+        else:
+            self.btn_pagar.config(state=tk.DISABLED)
+            self.lbl_total.config(fg="red" if self.total_carrito > self.usuario_actual.saldo_billetera else "#333333")
+
+    def quitar_del_carrito(self):
+        """Elimina una unidad del producto seleccionado en la tabla"""
+        seleccion = self.tree_carrito.selection()
+        
+        if not seleccion:
+            messagebox.showwarning("Selección vacía", "Primero haz clic en un producto del carrito para poder quitarlo.", parent=self)
+            return
+            
+        # Rescatamos el id_prod gracias a que lo guardamos en el 'iid'
+        id_prod = int(seleccion[0]) 
+        
+        # Reducir cantidad o eliminar el registro por completo si llega a cero
+        if self.carrito[id_prod]["cantidad"] > 1:
+            self.carrito[id_prod]["cantidad"] -= 1
+        else:
+            del self.carrito[id_prod]
+            
+        # Recalculamos toda la tabla y los botones mágicamente
+        self.actualizar_vista_carrito()
+
+    def procesar_pago_lote(self):
+        # 1. Descuento en el objeto de memoria
+        self.usuario_actual.descontar_saldo(self.total_carrito)
+        
+        db = DBManager()
+        # 2. Actualizar saldo en BD
+        db.actualizar_saldo_usuario(self.usuario_actual.id_usuario, self.usuario_actual.saldo_billetera)
+        
+        # 3. Procesar cada item del carrito
+        for id_prod, datos in self.carrito.items():
+            for _ in range(datos["cantidad"]):
+                db.restar_stock_producto(datos["nombre"])
+                db.registrar_venta_tienda(self.usuario_actual.id_usuario, id_prod, datos["precio"])
+        
+        messagebox.showinfo("Compra Exitosa", f"Transacción completada.\nTotal cobrado: S/ {self.total_carrito:.2f}\nNuevo saldo: S/ {self.usuario_actual.saldo_billetera:.2f}", parent=self)
+        
+        # 4. Actualizar panel principal y cerrar tienda
         if self.callback_actualizar_panel:
             self.callback_actualizar_panel()
+            
+        self.destroy()
