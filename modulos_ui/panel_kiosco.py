@@ -1,5 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+import os
+from PIL import Image, ImageTk
 from conexion import DBManager
 
 # ---PALETA DE COLORES ---
@@ -91,6 +93,7 @@ class VentanaTienda(tk.Toplevel):
 
     def dibujar_tarjetas_productos(self):
         columnas_maximas = 3
+        self.imagenes_referencia = []
         
         for index, prod in enumerate(self.lista_productos):
             fila = index // columnas_maximas
@@ -99,7 +102,26 @@ class VentanaTienda(tk.Toplevel):
             card = tk.Frame(self.scrollable_frame, bg=BG_PANEL, bd=1, relief="ridge", padx=10, pady=10)
             card.grid(row=fila, column=columna, padx=10, pady=10, sticky="nsew")
             
-            tk.Frame(card, bg=BG_BOTON, width=100, height=80).pack(pady=(0, 10))
+            ruta_imagen = f"assets/{prod['id_producto']}.png"
+            
+            try:
+                if os.path.exists(ruta_imagen):
+                    img_original = Image.open(ruta_imagen)
+                    img_redimensionada = img_original.resize((100,80), Image.Resampling.LANCZOS)
+                    foto = ImageTk.PhotoImage(img_redimensionada)
+                    
+                    lbl_imagen = tk.Label(card, image=foto, bg=BG_PANEL)
+                    lbl_imagen.image = foto
+                    lbl_imagen.pack(pady=(0,10))
+                    self.imagenes_referencia.append(foto)
+                else:
+                    #Cuadro gris si no hay imagen
+                    tk.Frame(card, bg=BG_BOTON, width=100, height=80).pack(pady=(0, 10))
+            except Exception as e:
+                print(f"Error cargando imagen para {prod['nombre_producto']}: {e}")
+                tk.Frame(card, bg=BG_BOTON, width=100, height=80).pack(pady=(0, 10))
+            
+            #tk.Frame(card, bg=BG_BOTON, width=100, height=80).pack(pady=(0, 10))
             
             tk.Label(card, text=prod["nombre_producto"], font=("Arial", 10, "bold"), bg=BG_PANEL, fg=TEXTO_MAIN, wraplength=120).pack()
             tk.Label(card, text=f"S/ {prod['precio']:.2f}", font=("Arial", 12, "bold"), bg=BG_PANEL, fg="#81C784").pack(pady=2)
