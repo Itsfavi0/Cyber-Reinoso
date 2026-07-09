@@ -2,20 +2,36 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from conexion import DBManager
 
+# ---PALETA DE COLORES ---
+BG_BASE = "#121212"
+BG_PANEL = "#1E1E1E"
+TEXTO_MAIN = "#FFFFFF"
+TEXTO_SECUNDARIO = "#A0A0A0"
+BG_BOTON = "#2C2C2C"
+COLOR_ACCION = "#1565C0"
+COLOR_QUITAR = "#C62828"
+COLOR_PAGO = "#2E7D32"
+
 class VentanaTienda(tk.Toplevel):
     def __init__(self, parent, usuario_actual, callback_actualizar_panel):
         super().__init__(parent)
         self.usuario_actual = usuario_actual
         self.callback_actualizar_panel = callback_actualizar_panel
         
-        # Variables de estado en memoria (El carrito)
-        self.carrito = {}  # Formato: {id_producto: {'nombre': str, 'precio': float, 'cantidad': int}}
+        self.carrito = {} 
         self.total_carrito = 0.0
         
         self.title(f"Tienda y Snacks - Atendiendo a {self.usuario_actual.alias_gamer}")
         self.geometry("900x600")
-        self.config(bg="#f4f4f9")
-        self.grab_set() # Bloquea la ventana principal
+        self.config(bg=BG_BASE)
+        self.grab_set() 
+        
+        # Magia de UI: Aplicar estilo oscuro nativo a la tabla (Treeview)
+        style = ttk.Style()
+        style.theme_use("default")
+        style.configure("Treeview", background=BG_PANEL, foreground=TEXTO_MAIN, fieldbackground=BG_PANEL, borderwidth=0)
+        style.configure("Treeview.Heading", background=BG_BOTON, foreground=TEXTO_MAIN, relief="flat")
+        style.map("Treeview", background=[('selected', '#34495E')])
         
         db = DBManager()
         self.lista_productos = db.obtener_productos()
@@ -23,21 +39,17 @@ class VentanaTienda(tk.Toplevel):
         self.construir_interfaz()
         
     def construir_interfaz(self):
-        # --- ZONA IZQUIERDA: CATÁLOGO (Grid con Scroll) ---
-        frame_izquierdo = tk.Frame(self, bg="#f4f4f9")
+        # --- ZONA IZQUIERDA: CATÁLOGO ---
+        frame_izquierdo = tk.Frame(self, bg=BG_BASE)
         frame_izquierdo.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=10, pady=10)
         
-        tk.Label(frame_izquierdo, text="Catálogo de Productos", font=("Arial", 14, "bold"), bg="#f4f4f9").pack(anchor="w", pady=(0, 10))
+        tk.Label(frame_izquierdo, text="🛒 Catálogo de Productos", font=("Arial", 14, "bold"), bg=BG_BASE, fg=TEXTO_MAIN).pack(anchor="w", pady=(0, 10))
         
-        # Sistema de Scroll con Canvas
-        canvas = tk.Canvas(frame_izquierdo, bg="#f4f4f9", highlightthickness=0)
+        canvas = tk.Canvas(frame_izquierdo, bg=BG_BASE, highlightthickness=0)
         scrollbar = ttk.Scrollbar(frame_izquierdo, orient="vertical", command=canvas.yview)
-        self.scrollable_frame = tk.Frame(canvas, bg="#f4f4f9")
+        self.scrollable_frame = tk.Frame(canvas, bg=BG_BASE)
         
-        self.scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-        )
+        self.scrollable_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
         
         canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
@@ -47,14 +59,13 @@ class VentanaTienda(tk.Toplevel):
         
         self.dibujar_tarjetas_productos()
         
-        # --- ZONA DERECHA: CARRITO DE COMPRAS ---
-        frame_derecho = tk.Frame(self, bg="#ffffff", bd=2, relief="groove", width=350)
+        # --- ZONA DERECHA: CARRITO ---
+        frame_derecho = tk.Frame(self, bg=BG_PANEL, bd=1, relief="ridge", width=350)
         frame_derecho.pack(side=tk.RIGHT, fill=tk.Y, padx=10, pady=10)
-        frame_derecho.pack_propagate(False) # Evita que el frame se encoja
+        frame_derecho.pack_propagate(False)
         
-        tk.Label(frame_derecho, text="Carrito de Compras", font=("Arial", 12, "bold"), bg="#ffffff").pack(pady=10)
+        tk.Label(frame_derecho, text="🛍️ Carrito de Compras", font=("Arial", 12, "bold"), bg=BG_PANEL, fg=TEXTO_MAIN).pack(pady=10)
         
-        # Tabla del carrito
         columnas = ("Producto", "Cant", "Subtotal")
         self.tree_carrito = ttk.Treeview(frame_derecho, columns=columnas, show="headings", height=15)
         self.tree_carrito.heading("Producto", text="Producto")
@@ -66,17 +77,16 @@ class VentanaTienda(tk.Toplevel):
         self.tree_carrito.column("Subtotal", width=80, anchor="e")
         self.tree_carrito.pack(fill=tk.BOTH, expand=True, padx=10)
         
-        self.btn_quitar = tk.Button(frame_derecho, text="❌ Quitar Seleccionado", font=("Arial", 9), bg="#ffcdd2", fg="#c62828", command=self.quitar_del_carrito)
+        self.btn_quitar = tk.Button(frame_derecho, text="❌ Quitar Seleccionado", font=("Arial", 9, "bold"), bg="#5C1010", fg="#FFCDD2", relief="flat", command=self.quitar_del_carrito)
         self.btn_quitar.pack(fill=tk.X, padx=20, pady=(10, 0))
         
-        # Zona de Totales y Pago
-        self.lbl_total = tk.Label(frame_derecho, text="Total (Inc. IGV): S/ 0.00", font=("Arial", 14, "bold"), bg="#ffffff", fg="#333333")
+        self.lbl_total = tk.Label(frame_derecho, text="Total (Inc. IGV): S/ 0.00", font=("Arial", 14, "bold"), bg=BG_PANEL, fg=TEXTO_MAIN)
         self.lbl_total.pack(pady=15)
         
-        self.lbl_saldo_disp = tk.Label(frame_derecho, text=f"Saldo Billetera: S/ {self.usuario_actual.saldo_billetera:.2f}", font=("Arial", 10), bg="#ffffff", fg="gray")
+        self.lbl_saldo_disp = tk.Label(frame_derecho, text=f"Saldo Billetera: S/ {self.usuario_actual.saldo_billetera:.2f}", font=("Arial", 10), bg=BG_PANEL, fg=TEXTO_SECUNDARIO)
         self.lbl_saldo_disp.pack(pady=(0, 10))
         
-        self.btn_pagar = tk.Button(frame_derecho, text="Procesar Pago", font=("Arial", 12, "bold"), bg="#4caf50", fg="white", state=tk.DISABLED, command=self.procesar_pago_lote)
+        self.btn_pagar = tk.Button(frame_derecho, text="Procesar Pago", font=("Arial", 12, "bold"), bg=BG_BOTON, fg=TEXTO_SECUNDARIO, relief="flat", state=tk.DISABLED, command=self.procesar_pago_lote)
         self.btn_pagar.pack(fill=tk.X, padx=20, pady=10)
 
     def dibujar_tarjetas_productos(self):
@@ -86,22 +96,21 @@ class VentanaTienda(tk.Toplevel):
             fila = index // columnas_maximas
             columna = index % columnas_maximas
             
-            # Tarjeta individual
-            card = tk.Frame(self.scrollable_frame, bg="#ffffff", bd=1, relief="ridge", padx=10, pady=10)
+            card = tk.Frame(self.scrollable_frame, bg=BG_PANEL, bd=1, relief="ridge", padx=10, pady=10)
             card.grid(row=fila, column=columna, padx=10, pady=10, sticky="nsew")
             
-            # Placeholder para futura imagen
-            tk.Frame(card, bg="#e0e0e0", width=100, height=80).pack(pady=(0, 10))
+            tk.Frame(card, bg=BG_BOTON, width=100, height=80).pack(pady=(0, 10))
             
-            tk.Label(card, text=prod["nombre_producto"], font=("Arial", 10, "bold"), bg="#ffffff", wraplength=120).pack()
-            tk.Label(card, text=f"S/ {prod['precio']:.2f}", font=("Arial", 12, "bold"), bg="#ffffff", fg="#2e7d32").pack(pady=2)
+            tk.Label(card, text=prod["nombre_producto"], font=("Arial", 10, "bold"), bg=BG_PANEL, fg=TEXTO_MAIN, wraplength=120).pack()
+            tk.Label(card, text=f"S/ {prod['precio']:.2f}", font=("Arial", 12, "bold"), bg=BG_PANEL, fg="#81C784").pack(pady=2)
             
             estado_stock = f"Stock: {prod['stock']}"
-            color_stock = "gray" if prod['stock'] > 0 else "red"
-            tk.Label(card, text=estado_stock, font=("Arial", 9), bg="#ffffff", fg=color_stock).pack(pady=(0, 10))
+            color_stock = TEXTO_SECUNDARIO if prod['stock'] > 0 else "#E57373"
+            tk.Label(card, text=estado_stock, font=("Arial", 9), bg=BG_PANEL, fg=color_stock).pack(pady=(0, 10))
             
             estado_btn = tk.NORMAL if prod['stock'] > 0 else tk.DISABLED
-            tk.Button(card, text="Agregar", bg="#bbdefb", state=estado_btn, command=lambda p=prod: self.agregar_al_carrito(p)).pack(fill=tk.X)
+            bg_btn_actual = COLOR_ACCION if prod['stock'] > 0 else BG_BOTON
+            tk.Button(card, text="Agregar", bg=bg_btn_actual, fg="white", relief="flat", state=estado_btn, command=lambda p=prod: self.agregar_al_carrito(p)).pack(fill=tk.X)
 
     def agregar_al_carrito(self, producto):
         id_prod = producto["id_producto"]
@@ -109,7 +118,7 @@ class VentanaTienda(tk.Toplevel):
         # Validar que no exceda el stock real
         cant_actual = self.carrito.get(id_prod, {}).get("cantidad", 0)
         if cant_actual >= producto["stock"]:
-            messagebox.showwarning("Stock Insuficiente", "No hay más unidades disponibles de este producto.")
+            messagebox.showwarning("Stock Insuficiente", "No hay más unidades disponibles de este producto.", parent=self)
             return
 
         if id_prod in self.carrito:
@@ -130,7 +139,6 @@ class VentanaTienda(tk.Toplevel):
             
         self.total_carrito = 0.0
         
-        # Rellenar tabla y sumar
         for id_prod, datos in self.carrito.items():
             subtotal = datos["precio"] * datos["cantidad"]
             self.total_carrito += subtotal
@@ -139,26 +147,23 @@ class VentanaTienda(tk.Toplevel):
             
         self.lbl_total.config(text=f"Total (Inc. IGV): S/ {self.total_carrito:.2f}")
         
-        # Lógica de habilitación del botón de pago
+        # Dinamismo de color en el botón de pago
         if self.total_carrito > 0 and self.total_carrito <= self.usuario_actual.saldo_billetera:
-            self.btn_pagar.config(state=tk.NORMAL)
-            self.lbl_total.config(fg="green")
+            self.btn_pagar.config(state=tk.NORMAL, bg=COLOR_PAGO, fg="white")
+            self.lbl_total.config(fg="#81C784")
         else:
-            self.btn_pagar.config(state=tk.DISABLED)
-            self.lbl_total.config(fg="red" if self.total_carrito > self.usuario_actual.saldo_billetera else "#333333")
+            self.btn_pagar.config(state=tk.DISABLED, bg=BG_BOTON, fg=TEXTO_SECUNDARIO)
+            self.lbl_total.config(fg="#E57373" if self.total_carrito > self.usuario_actual.saldo_billetera else TEXTO_MAIN)
 
     def quitar_del_carrito(self):
-        """Elimina una unidad del producto seleccionado en la tabla"""
         seleccion = self.tree_carrito.selection()
         
         if not seleccion:
             messagebox.showwarning("Selección vacía", "Primero haz clic en un producto del carrito para poder quitarlo.", parent=self)
             return
             
-        # Rescatamos el id_prod gracias a que lo guardamos en el 'iid'
         id_prod = int(seleccion[0]) 
         
-        # Reducir cantidad o eliminar el registro por completo si llega a cero
         if self.carrito[id_prod]["cantidad"] > 1:
             self.carrito[id_prod]["cantidad"] -= 1
         else:
@@ -170,12 +175,10 @@ class VentanaTienda(tk.Toplevel):
     def procesar_pago_lote(self):
         # 1. Descuento en el objeto de memoria
         self.usuario_actual.descontar_saldo(self.total_carrito)
-        
         db = DBManager()
         # 2. Actualizar saldo en BD
         db.actualizar_saldo_usuario(self.usuario_actual.id_usuario, self.usuario_actual.saldo_billetera)
         
-        # 3. Procesar cada item del carrito
         for id_prod, datos in self.carrito.items():
             for _ in range(datos["cantidad"]):
                 db.restar_stock_producto(datos["nombre"])
@@ -183,7 +186,6 @@ class VentanaTienda(tk.Toplevel):
         
         messagebox.showinfo("Compra Exitosa", f"Transacción completada.\nTotal cobrado: S/ {self.total_carrito:.2f}\nNuevo saldo: S/ {self.usuario_actual.saldo_billetera:.2f}", parent=self)
         
-        # 4. Actualizar panel principal y cerrar tienda
         if self.callback_actualizar_panel:
             self.callback_actualizar_panel()
             

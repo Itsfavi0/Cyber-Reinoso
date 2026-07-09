@@ -83,6 +83,22 @@ BEGIN
 END
 GO
 
+IF OBJECT_ID('Empleados', 'U') IS NULL
+BEGIN
+    CREATE TABLE Empleados (
+    id_empleado INT IDENTITY(1,1) PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    usuario VARCHAR(50) UNIQUE NOT NULL,
+    clave VARCHAR(50) NOT NULL,
+    rol VARCHAR(50) DEFAULT 'Cajero'
+    )
+    PRINT 'Tabla Empleados creada correctamente'
+END
+GO
+
+INSERT INTO Empleados (nombre, usuario, clave, rol)
+VALUES ('Favio Administrador', 'admin', '123456', 'Administrador');
+
 INSERT INTO Usuarios (alias_gamer, rango_cuenta, saldo_billetera)
 VALUES ('Itsfavi0', 'VIP', 50.00)
 GO
