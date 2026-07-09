@@ -54,7 +54,7 @@ class AppCyberReinoso(tk.Tk):
         
         # Cargamos el usuario por defecto (ID 1)
         datos_usr = db.obtener_usuario(1)
-        self.usuario_prueba = Usuario(
+        self.usuario_activo = Usuario(
                             id_usuario=datos_usr["id_usuario"], 
                             alias_gamer=datos_usr["alias_gamer"],
                             rango_cuenta=datos_usr["rango_cuenta"],
@@ -97,7 +97,7 @@ class AppCyberReinoso(tk.Tk):
         id_seleccionado = int(seleccion.split(" - ")[0])
         datos_usr = DBManager().obtener_usuario(id_seleccionado)
         if datos_usr:
-            self.usuario_prueba = Usuario(
+            self.usuario_activo = Usuario(
             id_usuario=datos_usr["id_usuario"], 
             alias_gamer=datos_usr["alias_gamer"], 
             rango_cuenta=datos_usr["rango_cuenta"], 
@@ -113,25 +113,25 @@ class AppCyberReinoso(tk.Tk):
     def iniciar_sesion(self, maquina_seleccionada):
         # Verificar si el usuario ya tiene otra sesión activa
         for id_est, sesion in self.sesiones_activas.items():
-            if sesion.usuario.id_usuario == self.usuario_prueba.id_usuario:
+            if sesion.usuario.id_usuario == self.usuario_activo.id_usuario:
                 messagebox.showwarning(
                     "Usuario con sesión activa",
-                    f"El gamer {self.usuario_prueba.alias_gamer} ya tiene una sesión activa en la PC {sesion.estacion.codigo_pc}.",
+                    f"El gamer {self.usuario_activo.alias_gamer} ya tiene una sesión activa en la PC {sesion.estacion.codigo_pc}.",
                     parent=self
                 )
                 return
 
         costo_minimo = maquina_seleccionada.calcular_tarifa(1)
-        if self.usuario_prueba.saldo_billetera < costo_minimo:
+        if self.usuario_activo.saldo_billetera < costo_minimo:
             messagebox.showwarning("Saldo insuficiente", f"Saldo insuficiente. Mínimo requerido: S/{costo_minimo:.2f}")
             return
         
         db = DBManager()
         hora_inicio = datetime.now()
-        id_sesion = db.registrar_inicio_sesion(self.usuario_prueba.id_usuario, maquina_seleccionada.id_estacion, hora_inicio)
+        id_sesion = db.registrar_inicio_sesion(self.usuario_activo.id_usuario, maquina_seleccionada.id_estacion, hora_inicio)
         
         if id_sesion:
-            self.sesiones_activas[maquina_seleccionada.id_estacion] = Sesion(id_sesion, self.usuario_prueba, maquina_seleccionada, hora_inicio)
+            self.sesiones_activas[maquina_seleccionada.id_estacion] = Sesion(id_sesion, self.usuario_activo, maquina_seleccionada, hora_inicio)
             db.actualizar_estado_pc(maquina_seleccionada.id_estacion, "Ocupada")
             self.refrescar_interfaz()
         

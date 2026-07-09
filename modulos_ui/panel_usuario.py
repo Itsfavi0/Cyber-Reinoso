@@ -20,7 +20,7 @@ class PanelUsuario(tk.LabelFrame):
         for widget in self.winfo_children():
             widget.destroy()
         
-        usuario = self.controlador.usuario_prueba
+        usuario = self.controlador.usuario_activo
         
         frame_seleccion = tk.Frame(self, bg=BG_PANEL)
         frame_seleccion.pack(fill=tk.X, pady=(0,15))
@@ -69,7 +69,7 @@ class PanelUsuario(tk.LabelFrame):
             activeforeground="white",
             pady=6,
             cursor="hand2",
-            command=lambda: VentanaRecarga(self.controlador, self.controlador.usuario_prueba, callback_actualizar=self.controlador.refrescar_interfaz)
+            command=lambda: VentanaRecarga(self.controlador, self.controlador.usuario_activo, callback_actualizar=self.controlador.refrescar_interfaz)
         )
         self.btn_recargar.pack(fill=tk.X, pady=(0, 15))
         self.btn_recargar.bind("<Enter>", lambda e: self.btn_recargar.config(bg="#388E3C"))
