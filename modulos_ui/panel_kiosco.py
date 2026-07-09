@@ -155,21 +155,27 @@ class VentanaTienda(tk.Toplevel):
         self.actualizar_vista_carrito()
 
     def actualizar_vista_carrito(self):
-        # Limpiar tabla
         for item in self.tree_carrito.get_children():
             self.tree_carrito.delete(item)
             
-        self.total_carrito = 0.0
-        
+        subtotal_productos = 0.0
         for id_prod, datos in self.carrito.items():
-            subtotal = datos["precio"] * datos["cantidad"]
-            self.total_carrito += subtotal
-            # NUEVO: Le inyectamos el id_prod al parámetro 'iid' (Internal ID)
-            self.tree_carrito.insert("", "end", iid=id_prod, values=(datos["nombre"], datos["cantidad"], f"S/ {subtotal:.2f}"))
+            subtotal_productos += datos["precio"] * datos["cantidad"]
+            self.tree_carrito.insert("", "end", iid=id_prod, values=(datos["nombre"], datos["cantidad"], f"S/ {(datos['precio'] * datos['cantidad']):.2f}"))
             
-        self.lbl_total.config(text=f"Total (Inc. IGV): S/ {self.total_carrito:.2f}")
+        # --- APLICAMOS DESCUENTO DE TIENDA POR RANGO ---
+        descuento_rango = subtotal_productos * self.usuario_actual.porcentaje_descuento
+        self.total_carrito = subtotal_productos - descuento_rango
         
-        # Dinamismo de color en el botón de pago
+        # Mostramos la información detallada en el panel del carrito
+        if descuento_rango > 0:
+            texto_total = f"Total (Inc. IGV): S/ {self.total_carrito:.2f}\n(Desc. {self.usuario_actual.rango_cuenta}: -S/ {descuento_rango:.2f})"
+        else:
+            texto_total = f"Total (Inc. IGV): S/ {self.total_carrito:.2f}"
+            
+        self.lbl_total.config(text=texto_total)
+        
+        # El resto de la lógica de activación del botón de pago se mantiene igual...
         if self.total_carrito > 0 and self.total_carrito <= self.usuario_actual.saldo_billetera:
             self.btn_pagar.config(state=tk.NORMAL, bg=COLOR_PAGO, fg="white")
             self.lbl_total.config(fg="#81C784")

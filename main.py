@@ -134,15 +134,30 @@ class AppCyberReinoso(tk.Tk):
                 db.actualizar_fin_sesion(sesion_actual.id_sesion, sesion_actual.hora_fin, sesion_actual.monto_cobrado)
                 
                 if not es_corte_automatico:
-                    messagebox.showinfo(
-                        "Sesión Finalizada",
+                    # Forzamos mínimo 1 minuto para el cálculo de boleta
+                    tiempo_cobro = max(1, minutos_jugados) 
+                    costo_original = round(maquina_seleccionada.calcular_tarifa(tiempo_cobro), 2)
+                    monto_final = round(sesion_actual.monto_cobrado, 2)
+                    ahorro = round(costo_original - monto_final, 2)
+                    
+                    texto_boleta = (
                         f"PC: {maquina_seleccionada.codigo_pc}\n"
-                        f"Gamer: {usuario.alias_gamer}\n"
+                        f"Gamer: {usuario.alias_gamer} [{usuario.rango_cuenta}]\n"
                         f"⏱ Tiempo jugado: {minutos_jugados} min\n"
-                        f"Total cobrado: S/ {sesion_actual.monto_cobrado:.2f}\n"
-                        f"Saldo restante: S/ {usuario.saldo_billetera:.2f}",
-                        parent=self
                     )
+                    
+                    #Solo mostramos ahorro si hay descuento Y si el ahorro es real (>0)
+                    if usuario.porcentaje_descuento > 0 and ahorro > 0:
+                        porcentaje = int(usuario.porcentaje_descuento * 100)
+                        texto_boleta += f"Costo base: S/ {costo_original:.2f}\n"
+                        texto_boleta += f"Ahorro VIP ({porcentaje}%): -S/ {ahorro:.2f}\n"
+                    
+                    texto_boleta += (
+                        f"Total cobrado: S/ {monto_final:.2f}\n"
+                        f"Saldo restante: S/ {usuario.saldo_billetera:.2f}"
+                    )
+                    
+                    messagebox.showinfo("Sesión Finalizada - Boleta", texto_boleta, parent=self)
                 else:
                     messagebox.showwarning(
                         "Corte Automático",
@@ -153,7 +168,7 @@ class AppCyberReinoso(tk.Tk):
                 if subio_rango:
                     messagebox.showinfo(
                         "¡LEVEL UP!",
-                        f"¡Felicitaciones!\nEl gamer {usuario.alias} ha acumulado {usuario.minutos_acumulados // 60} horas en el Cyber Reinoso.\n\nNuevo Rango: {usuario.rango_cuenta.upper()}",
+                        f"¡Felicitaciones!\nEl gamer {usuario.alias_gamer} ha acumulado {usuario.minutos_acumulados // 60} horas en el Cyber Reinoso.\n\nNuevo Rango: {usuario.rango_cuenta.upper()}",
                         parent=self
                     )
             except SaldoInsuficienteError:

@@ -19,6 +19,17 @@ class Usuario:
     def saldo_billetera(self):
         return self.__saldo_billetera
     
+    @property
+    def porcentaje_descuento(self):
+        """Retorna el porcentaje de descuento aplicable según el rango actual del jugador"""
+        tabla_beneficios = {
+            "Bronce": 0.0,       # 0% de descuento
+            "Plata": 0.05,      # 5% de descuento
+            "Oro": 0.10,        # 10% de descuento
+            "Global VIP": 0.20  # 20% de descuento
+        }
+        return tabla_beneficios.get(self.rango_cuenta, 0.0)
+    
     def evaluar_rango_por_minutos(self):
         """Lógica de negocio: Define el rango del jugador según su tiempo invertido"""
         if self.minutos_acumulados < 600:
@@ -128,9 +139,12 @@ class Sesion:
         
         if minutos_consumidos == 0:
             minutos_consumidos = 1
-            
-        self.monto_cobrado = self.estacion.calcular_tarifa(minutos_consumidos)
         
+        costo_base = self.estacion.calcular_tarifa(minutos_consumidos)
+        
+        descuento = costo_base * self.usuario.porcentaje_descuento
+        self.monto_cobrado = costo_base - descuento
+                
         self.usuario.descontar_saldo(self.monto_cobrado)
         self.estacion.estado = "Disponible"
         
