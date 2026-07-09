@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
 from conexion import DBManager
-from modelos import Usuario, PC_Regular, PC_VIP, Sesion, SaldoInsuficienteError
+from modelos import Usuario, PC_Regular, PC_eSports, PC_StreamingVIP, Sesion, SaldoInsuficienteError
 from datetime import datetime
 from modulos_ui.ventana_login import VentanaLogin
 from modulos_ui.panel_mapa import PanelMapa
@@ -48,7 +48,17 @@ class AppCyberReinoso(tk.Tk):
         # Convertimos diccionarios a objetos EstacionTrabajo
         datos_db = db.obtener_estaciones()
         for fila in datos_db:
-            pc = PC_VIP(fila["id_estacion"], fila["codigo_pc"]) if fila["categoria"] == "VIP" else PC_Regular(fila["id_estacion"], fila["codigo_pc"])
+            categoria = fila["categoria"]
+            specs = fila.get("specs", {})
+            
+            # Instanciamos la clase correcta según la BD, pasándole las especificaciones
+            if categoria == "Streaming VIP":
+                pc = PC_StreamingVIP(fila["id_estacion"], fila["codigo_pc"], specs)
+            elif categoria == "eSports":
+                pc = PC_eSports(fila["id_estacion"], fila["codigo_pc"], specs)
+            else:
+                pc = PC_Regular(fila["id_estacion"], fila["codigo_pc"], specs)
+                
             pc.estado = fila["estado_actual"]
             self.lista_pcs.append(pc)
         
@@ -128,7 +138,9 @@ class AppCyberReinoso(tk.Tk):
         
         db = DBManager()
         hora_inicio = datetime.now()
-        id_sesion = db.registrar_inicio_sesion(self.usuario_activo.id_usuario, maquina_seleccionada.id_estacion, hora_inicio)
+        
+        id_cajero = self.empleado_actual["id_empleado"] if self.empleado_actual else 1
+        id_sesion = db.registrar_inicio_sesion(self.usuario_activo.id_usuario, id_cajero, maquina_seleccionada.id_estacion, hora_inicio)
         
         if id_sesion:
             self.sesiones_activas[maquina_seleccionada.id_estacion] = Sesion(id_sesion, self.usuario_activo, maquina_seleccionada, hora_inicio)

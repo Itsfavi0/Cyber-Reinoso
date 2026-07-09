@@ -251,16 +251,35 @@ class VentanaTienda(tk.Toplevel):
         self.actualizar_vista_carrito()
 
     def procesar_pago_lote(self):
+        #1. Descontamosel saldo del usuario
         self.usuario_actual.descontar_saldo(self.total_carrito)
         db = DBManager()
         db.actualizar_saldo_usuario(self.usuario_actual.id_usuario, self.usuario_actual.saldo_billetera)
         
-        for id_prod, datos in self.carrito.items():
-            for _ in range(datos["cantidad"]):
-                db.restar_stock_producto(datos["nombre"])
-                db.registrar_venta_tienda(self.usuario_actual.id_usuario, id_prod, datos["precio"])
+        #2. Identificamos al empleado que está procesando la venta
+        id_cajero = self.master.empleado_actual["id_empleado"] if hasattr(self.master, "empleado_actual") else None
         
-        messagebox.showinfo("Compra Exitosa", f"Transacción completada.\nTotal cobrado: S/ {self.total_carrito:.2f}\nNuevo saldo: S/ {self.usuario_actual.saldo_billetera:.2f}", parent=self)
+        #3. Disparamos la transaccion masica
+        exito = db.procesar_compra_kiosco(
+            id_usuario=self.usuario_actual.id_usuario,
+            id_empleado=id_cajero,
+            total_venta=self.total_carrito,
+            carrito=self.carrito
+        )
+        
+        # 4. Evaluamos el resultado de la transacción
+        if exito:
+            messagebox.showinfo(
+                "Compra Exitosa", 
+                f"Transacción completada.\nTotal cobrado: S/ {self.total_carrito:.2f}\nNuevo saldo: S/ {self.usuario_actual.saldo_billetera:.2f}", 
+                parent=self
+            )
+        else:
+            messagebox.showerror(
+                "Error de Transacción", 
+                "Hubo un problema registrando la venta en la Base de Datos. El saldo pudo verse afectado.", 
+                parent=self
+            )
         
         if self.callback_actualizar_panel:
             self.callback_actualizar_panel()

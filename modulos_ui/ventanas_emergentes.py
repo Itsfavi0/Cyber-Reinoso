@@ -156,6 +156,8 @@ class VentanaRecarga(tk.Toplevel):
             monto = float(monto_texto)
             if monto <= 0:
                 raise ValueError("El monto debe ser positivo.")
+            
+            self.usuario.recargar_saldo(monto)
                 
             nuevo_saldo = self.usuario.saldo_billetera + monto
             db = DBManager()

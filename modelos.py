@@ -77,11 +77,12 @@ class Usuario:
 class EstacionTrabajo(ABC):
     total_pcs_registradas = 0
     
-    def __init__(self, id_estacion : int, codigo_pc: str):
+    def __init__(self, id_estacion : int, codigo_pc: str, especificaciones=None):
         self.id_estacion = id_estacion
         self.codigo_pc = codigo_pc
         self.__estado = "Disponible"
-        
+        self.especificaciones = especificaciones or {}
+
         EstacionTrabajo.total_pcs_registradas += 1
         
     @property
@@ -106,21 +107,39 @@ class EstacionTrabajo(ABC):
     
 # Subclases
 class PC_Regular(EstacionTrabajo):
+    def __init__(self, id_estacion, codigo_pc, especificaciones=None):
+        super().__init__(id_estacion, codigo_pc, especificaciones)
+
     @property
     def categoria(self) -> str:
         return "Regular"
     
     def calcular_tarifa(self, minutos) -> float:
-        tarifa_minuto = 2.00/60
+        tarifa_minuto = 2.00 / 60
         return round(minutos * tarifa_minuto, 2)
-    
-class PC_VIP(EstacionTrabajo):
+
+class PC_eSports(EstacionTrabajo):
+    def __init__(self, id_estacion, codigo_pc, especificaciones=None):
+        super().__init__(id_estacion, codigo_pc, especificaciones)
+
     @property
     def categoria(self) -> str:
-        return "VIP"
+        return "eSports"
     
     def calcular_tarifa(self, minutos) -> float:
-        tarifa_minuto = 3.50/60
+        tarifa_minuto = 3.00 / 60
+        return round(minutos * tarifa_minuto, 2)
+
+class PC_StreamingVIP(EstacionTrabajo):
+    def __init__(self, id_estacion, codigo_pc, especificaciones=None):
+        super().__init__(id_estacion, codigo_pc, especificaciones)
+
+    @property
+    def categoria(self) -> str:
+        return "Streaming VIP"
+    
+    def calcular_tarifa(self, minutos) -> float:
+        tarifa_minuto = 5.00 / 60
         return round(minutos * tarifa_minuto, 2)
     
 class Sesion:

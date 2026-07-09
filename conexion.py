@@ -40,12 +40,14 @@ class DBManager:
         if conn:
             try:
                 with conn.cursor() as cursor:
-                    cursor.execute(
-                        """
-                            SELECT id_estacion, codigo_pc, categoria, estado_actual
-                            FROM Estaciones
-                        """
-                    )
+                    # Aplicamos el LEFT JOIN para unir el módulo lógico con la PC física
+                    consulta = """
+                        SELECT e.id_estacion, e.codigo_pc, e.categoria, e.estado_actual,
+                               c.procesador, c.tarjeta_grafica, c.monitor, c.mouse
+                        FROM Estaciones e
+                        LEFT JOIN Computadoras c ON e.codigo_pc = c.codigo_pc
+                    """
+                    cursor.execute(consulta)
                     filas = cursor.fetchall()
                     
                     for fila in filas:
@@ -53,7 +55,13 @@ class DBManager:
                             "id_estacion" : fila[0],
                             "codigo_pc" : fila[1],
                             "categoria" : fila[2],
-                            "estado_actual" : fila[3]
+                            "estado_actual" : fila[3],
+                            "specs" : {
+                                "procesador" : fila[4],
+                                "tarjeta_grafica" : fila[5],
+                                "monitor" : fila[6],
+                                "mouse" : fila[7]
+                            }
                         }
                         lista_estaciones.append(estacion)
             except pyodbc.Error as e:
@@ -92,21 +100,6 @@ class DBManager:
                 conn.close()
                 
         return lista_productos
-    
-    def restar_stock_producto(self, nombre_producto):
-        """Resta 1 unidad al stock del producto en la BD siempre que tenga existencia"""
-        conn = self.conectar()
-        if conn:
-            try:
-                with conn.cursor() as cursor:
-                    consulta = "UPDATE Productos SET stock = stock - 1 WHERE nombre_producto = ? AND stock > 0"
-                    cursor.execute(consulta, (nombre_producto,)) 
-                    conn.commit()
-                    print(f"Inventario actualizado con éxito | Producto: {nombre_producto} (-1 unidades)")
-            except pyodbc.Error as e:
-                print(f"Error al actualizar el stock: {e}")
-            finally:
-                conn.close()
             
     def actualizar_estado_pc(self, id_estacion, nuevo_estado):
         """Actualiza el estado de la PC en la base de datos"""
@@ -268,22 +261,22 @@ class DBManager:
                 conn.close()
         return total_ingresos
     
-    def registrar_inicio_sesion(self, id_usuario, id_estacion, hora_inicio):
-        """Inserta el inicio de una sesión en la BD con hora_fin NULL y retorna el ID autogenerado"""
+    def registrar_inicio_sesion(self, id_usuario, id_empleado, id_estacion, hora_inicio):
+        """Ïnserta el inicio de una sesión en la BD asociando al cajero de turno"""
         conn = self.conectar()
         id_sesion = None
         if conn:
             try:
                 with conn.cursor() as cursor:
                     consulta = """
-                        INSERT INTO Sesiones (id_usuario, id_estacion, hora_inicio, hora_fin, monto_cobrado)
+                        INSERT INTO Sesiones (id_usuario, id_empleado, id_estacion, hora_inicio, hora_fin, monto_cobrado)
                         OUTPUT INSERTED.id_sesion
-                        VALUES (?, ?, ?, NULL, NULL)
+                        VALUES (?, ?, ?, ?, NULL, NULL)
                     """
-                    cursor.execute(consulta, (id_usuario, id_estacion, hora_inicio))
+                    cursor.execute(consulta, (id_usuario, id_empleado, id_estacion, hora_inicio))
                     id_sesion = cursor.fetchone()[0]
                     conn.commit()
-                    print(f"Sesión de usuario {id_usuario} en PC {id_estacion} guardada en BD con ID: {id_sesion}")
+                    print(f"Sesión de usuario {id_usuario} en PC {id_estacion} guardada con ID: {id_sesion} | Cajero: {id_empleado}")            
             except pyodbc.Error as e:
                 print(f"Error al registrar inicio de sesión en BD: {e}")
             finally:
@@ -339,23 +332,46 @@ class DBManager:
                 conn.close()
         return lista_sesiones
     
-    def registrar_venta_tienda(self, id_usuario, id_producto, monto):
-        """Guarda el registro de una venta del kiosco en el historial"""
+    def procesar_compra_kiosco(self, id_usuario, id_empleado, total_venta, carrito):
+        """Registra cabecera, detalle y descuenta stock en una sola transacción segura (ACID)"""
         conn = self.conectar()
+        exito = False
         if conn:
             try:
                 with conn.cursor() as cursor:
-                    consulta = """
-                        INSERT INTO Ventas_Kiosco (id_usuario, id_producto, monto)
+                    # 1. Insertamos la Cabecera (Ventas) y capturamos el ID generado
+                    consulta_cabecera = """
+                        INSERT INTO Ventas (id_usuario, id_empleado, monto_total)
+                        OUTPUT INSERTED.id_venta
                         VALUES (?, ?, ?)
                     """
-                    cursor.execute(consulta, (id_usuario, id_producto, monto))
+                    cursor.execute(consulta_cabecera, (id_usuario, id_empleado, total_venta))
+                    id_venta = cursor.fetchone()[0]
+                    
+                    # 2. Preparamos las consultas para el bucle
+                    consulta_detalle = """
+                        INSERT INTO DetalleVentas (id_venta, id_producto, cantidad, precio_unitario, subtotal)
+                        VALUES (?, ?, ?, ?, ?)
+                    """
+                    consulta_stock = "UPDATE Productos SET stock = stock - ? WHERE id_producto = ?"
+                    
+                    # 3. Iteramos el carrito: Insertamos en el Detalle y restamos el Stock
+                    for id_prod, datos in carrito.items():
+                        subtotal = datos["precio"] * datos["cantidad"]
+                        cursor.execute(consulta_detalle, (id_venta, id_prod, datos["cantidad"], datos["precio"], subtotal))
+                        cursor.execute(consulta_stock, (datos["cantidad"], id_prod))
+                    
+                    # 4. Si todo salió bien, sellamos la transacción (El martillazo final)
                     conn.commit()
-                    print(f"Venta registrada en historial | ID Prod: {id_producto} | S/ {monto:.2f}")
+                    exito = True
+                    print(f"Transacción exitosa | Ticket #{id_venta} | Cajero ID: {id_empleado}")
             except pyodbc.Error as e:
-                print(f"Error al registrar la venta en la BD: {e}")
+                # ¡MAGIA SENIOR! Si cualquier cosa falla, deshacemos todos los cambios
+                conn.rollback() 
+                print(f"Error crítico en Kiosco. Se aplicó ROLLBACK de seguridad: {e}")
             finally:
                 conn.close()
+        return exito
                 
     def obtener_reporte_tienda_hoy(self):
         """Calcula el total de ingresos por ventas de kiosco en el día actual"""
@@ -366,8 +382,8 @@ class DBManager:
             try:
                 with conn.cursor() as cursor:
                     consulta = """
-                        SELECT SUM(monto) 
-                        FROM Ventas_Kiosco 
+                        SELECT SUM(monto_total) 
+                        FROM Ventas
                         WHERE CAST(fecha_venta AS DATE) = CAST(GETDATE() AS DATE)
                     """
                     cursor.execute(consulta)
