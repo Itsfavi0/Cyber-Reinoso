@@ -6,15 +6,38 @@ class SaldoInsuficienteError(Exception):
     pass
 
 class Usuario:
-    def __init__(self, id_usuario: int, alias_gamer: str, rango_cuenta: str, saldo_inicial: float):
+    def __init__(self, id_usuario, alias_gamer, rango_cuenta, saldo_billetera, minutos_acumulados=0):
         self.id_usuario = id_usuario
         self.alias_gamer = alias_gamer
-        self.rango_cuenta = rango_cuenta
-        self.__saldo_billetera = saldo_inicial
+        self.rango_cuenta = str(rango_cuenta)
+        self.__saldo_billetera = float(saldo_billetera)
+        self.minutos_acumulados = int(minutos_acumulados)
+        #calculamos los minutos para tener el rango
+        self.rango_cuenta = self.evaluar_rango_por_minutos()
         
     @property
     def saldo_billetera(self):
         return self.__saldo_billetera
+    
+    def evaluar_rango_por_minutos(self):
+        """Lógica de negocio: Define el rango del jugador según su tiempo invertido"""
+        if self.minutos_acumulados < 600:
+            return "Bronce"
+        elif self.minutos_acumulados < 3000:
+            return "Plata"
+        elif self.minutos_acumulados < 6000:
+            return "Oro"
+        else:
+            return "Global VIP"
+        
+    def agregar_minutos_jugados(self, minutos):
+        """Suma los minutos de la sesión terminada y recalcula el rango"""
+        rango_anterior = self.rango_cuenta
+        self.minutos_acumulados += minutos
+        self.rango_cuenta = self.evaluar_rango_por_minutos()
+        
+        # Retorna True si el usuario acaba de subir de rango para mostrarle una alerta de felicitación
+        return rango_anterior != self.rango_cuenta
     
     def recargar_saldo(self, monto: float):
         if monto <= 0:

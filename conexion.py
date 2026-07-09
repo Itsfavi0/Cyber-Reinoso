@@ -163,9 +163,8 @@ class DBManager:
             try:
                 cursor =  conn.cursor()
                 #Se añade una coma para que sea una tupla de un solo elemento
-                cursor.execute(
-                    "SELECT * FROM Usuarios WHERE id_usuario = ?", (id_usuario,)
-                )
+                consulta = "SELECT id_usuario, alias_gamer, rango_cuenta, saldo_billetera, minutos_acumulados FROM Usuarios WHERE id_usuario = ?"
+                cursor.execute(consulta, (id_usuario,))
                 fila = cursor.fetchone()
                 
                 if fila:
@@ -173,7 +172,8 @@ class DBManager:
                         "id_usuario": fila[0],
                         "alias_gamer": fila[1],
                         "rango_cuenta": fila[2],
-                        "saldo_billetera": float(fila[3])
+                        "saldo_billetera": float(fila[3]),
+                        "minutos_acumulados" : fila[4]
                     }
                 
             except pyodbc.Error as e:
@@ -199,6 +199,20 @@ class DBManager:
                 print(f"Error al actualizar saldo: {e}")
             finally:
                 cursor.close()
+                conn.close()
+                
+    def actualizar_progreso_usuario(self, id_usuario, saldo, rango, minutos):
+        """Guarda el saldo actual, el rango y los minutos jugados tras finalizar una sesión"""
+        conn = self.conectar()
+        if conn:
+            try:
+                cursor = conn.cursor()
+                consulta = "UPDATE Usuarios SET saldo_billetera = ?, rango_cuenta = ?, minutos_acumulados = ? WHERE id_usuario = ?"
+                cursor.execute(consulta, (saldo, rango, minutos, id_usuario))
+                conn.commit()
+            except pyodbc.Error as e:
+                print(f"Error al actualizar progreso del usuario: {e}")
+            finally:
                 conn.close()
                 
     def registrar_usuario(self, alias_gamer, rango_cuenta, saldo_inicial):

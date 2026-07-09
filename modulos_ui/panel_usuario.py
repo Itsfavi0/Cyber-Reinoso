@@ -41,7 +41,15 @@ class PanelUsuario(tk.LabelFrame):
         tk.Label(self, text=usuario.alias_gamer, font=("Arial", 14, "bold"), bg=BG_PANEL, fg=TEXTO_MAIN).pack(anchor="w", pady=(0, 15))
         
         tk.Label(self, text="Rango:", font=("Arial", 10), bg=BG_PANEL, fg=TEXTO_SECUNDARIO).pack(anchor="w")
-        color_rango = "#B388FF" if usuario.rango_cuenta == "VIP" else "#82B1FF"
+        
+        colores_rango = {
+            "Bronce": "#CD7F32",     # Color cobre/bronce
+            "Plata": "#E0E0E0",      # Gris plateado brillante
+            "Oro": "#FFD700",        # Dorado intenso
+            "Global VIP": "#B388FF"  # Morado neón (Premium)
+        }
+        color_rango = colores_rango.get(usuario.rango_cuenta, TEXTO_MAIN)
+        
         tk.Label(self, text=usuario.rango_cuenta, font=("Arial", 14, "bold"), bg=BG_PANEL, fg=color_rango).pack(anchor="w", pady=(0, 15))
         
         tk.Label(self, text="Saldo Disponible:", font=("Arial", 10), bg=BG_PANEL, fg=TEXTO_SECUNDARIO).pack(anchor="w")
