@@ -59,6 +59,16 @@ class Usuario:
         if costo > self.saldo_billetera:
             raise SaldoInsuficienteError(f"Operación denegada. {self.alias_gamer} no tiene saldo suficiente.")
         self.__saldo_billetera -= costo
+
+    def descontar_saldo_hasta_cero(self, costo: float):
+        """Descuenta el saldo del usuario; si el costo es mayor, descuenta lo que queda y retorna lo cobrado."""
+        if costo > self.saldo_billetera:
+            cobrado = self.__saldo_billetera
+            self.__saldo_billetera = 0.0
+            return cobrado
+        else:
+            self.__saldo_billetera -= costo
+            return costo
         
     def __str__(self):
         return f"Gamer: {self.alias_gamer} | Rango: {self.rango_cuenta} | Saldo: S/{self.saldo_billetera:.2f}"
@@ -127,7 +137,7 @@ class Sesion:
         # Al iniciar una sesion la maquina cambia de estado a ocupada
         self.estacion.estado = "Ocupada"
         
-    def finalizar_sesion(self):
+    def finalizar_sesion(self, es_corte_automatico=False):
         """Detenemos el cronómetro, calcula los minutos y cobra al usuario."""
         if self.hora_fin is not None:
             raise ValueError("Esta sesión ya fue finalizada anteriormente.")
@@ -143,9 +153,14 @@ class Sesion:
         costo_base = self.estacion.calcular_tarifa(minutos_consumidos)
         
         descuento = costo_base * self.usuario.porcentaje_descuento
-        self.monto_cobrado = costo_base - descuento
-                
-        self.usuario.descontar_saldo(self.monto_cobrado)
+        monto_a_cobrar = costo_base - descuento
+        
+        if es_corte_automatico or monto_a_cobrar > self.usuario.saldo_billetera:
+            self.monto_cobrado = self.usuario.descontar_saldo_hasta_cero(monto_a_cobrar)
+        else:
+            self.usuario.descontar_saldo(monto_a_cobrar)
+            self.monto_cobrado = monto_a_cobrar
+            
         self.estacion.estado = "Disponible"
         
     def __add__(self, otra_sesion):

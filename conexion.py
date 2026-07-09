@@ -22,13 +22,16 @@ class DBManager:
         """Método de diagnóstico para verificar que las tuberías funcionan"""
         conn = self.conectar()
         if conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT @@VERSION")
-            row = cursor.fetchone()
-            print("CONEXIÓN EXITOSA!!")
-            print(f"Version del servidor: {row}")
-            cursor.close()
-            conn.close()
+            try:
+                with conn.cursor() as cursor:
+                    cursor.execute("SELECT @@VERSION")
+                    row = cursor.fetchone()
+                    print("CONEXIÓN EXITOSA!!")
+                    print(f"Version del servidor: {row}")
+            except pyodbc.Error as e:
+                print(f"Error en diagnóstico de conexión: {e}")
+            finally:
+                conn.close()
             
     def obtener_estaciones(self):
         """Consula la base de datos y retorna una lista de diccionarios con las PCs"""
@@ -36,27 +39,26 @@ class DBManager:
         lista_estaciones = []
         if conn:
             try:
-                cursor = conn.cursor()
-                cursor.execute(
-                    """
-                        SELECT id_estacion, codigo_pc, categoria, estado_actual
-                        FROM Estaciones
-                    """
+                with conn.cursor() as cursor:
+                    cursor.execute(
+                        """
+                            SELECT id_estacion, codigo_pc, categoria, estado_actual
+                            FROM Estaciones
+                        """
                     )
-                filas = cursor.fetchall()
-                
-                for fila in filas:
-                    estacion = {
-                        "id_estacion" : fila[0],
-                        "codigo_pc" : fila[1],
-                        "categoria" : fila[2],
-                        "estado_actual" : fila[3]
-                    }
-                    lista_estaciones.append(estacion)
+                    filas = cursor.fetchall()
+                    
+                    for fila in filas:
+                        estacion = {
+                            "id_estacion" : fila[0],
+                            "codigo_pc" : fila[1],
+                            "categoria" : fila[2],
+                            "estado_actual" : fila[3]
+                        }
+                        lista_estaciones.append(estacion)
             except pyodbc.Error as e:
                 print(f"Error al leer las estaciones: {e}")
             finally:
-                cursor.close()
                 conn.close()
                 
         return lista_estaciones 
@@ -67,27 +69,26 @@ class DBManager:
         lista_productos = []
         if conn:
             try:
-                cursor = conn.cursor()
-                cursor.execute(
-                    """
-                        SELECT id_producto, nombre_producto, precio, stock
-                        FROM Productos
-                    """
-                )
-                filas = cursor.fetchall()
-                
-                for fila in filas:
-                    producto = {
-                        "id_producto" : fila[0],
-                        "nombre_producto" : fila[1],
-                        "precio" : float(fila[2]),
-                        "stock" : fila[3]
-                    }
-                    lista_productos.append(producto)
+                with conn.cursor() as cursor:
+                    cursor.execute(
+                        """
+                            SELECT id_producto, nombre_producto, precio, stock
+                            FROM Productos
+                        """
+                    )
+                    filas = cursor.fetchall()
+                    
+                    for fila in filas:
+                        producto = {
+                            "id_producto" : fila[0],
+                            "nombre_producto" : fila[1],
+                            "precio" : float(fila[2]),
+                            "stock" : fila[3]
+                        }
+                        lista_productos.append(producto)
             except pyodbc.Error as e:
                 print(f"Error al leer los productos: {e}")
             finally:
-                cursor.close()
                 conn.close()
                 
         return lista_productos
@@ -97,16 +98,14 @@ class DBManager:
         conn = self.conectar()
         if conn:
             try:
-                cursor = conn.cursor()
-                consulta = "UPDATE Productos SET stock = stock - 1 WHERE nombre_producto = ? AND stock > 0"
-                #Se añade una coma para que sea interpretado como tupla por pyodbc
-                cursor.execute(consulta, (nombre_producto,)) 
-                conn.commit()
-                print(f"Inventario actualizado con éxito | Producto: {nombre_producto} (-1 unidades)")
+                with conn.cursor() as cursor:
+                    consulta = "UPDATE Productos SET stock = stock - 1 WHERE nombre_producto = ? AND stock > 0"
+                    cursor.execute(consulta, (nombre_producto,)) 
+                    conn.commit()
+                    print(f"Inventario actualizado con éxito | Producto: {nombre_producto} (-1 unidades)")
             except pyodbc.Error as e:
                 print(f"Error al actualizar el stock: {e}")
             finally:
-                cursor.close()
                 conn.close()
             
     def actualizar_estado_pc(self, id_estacion, nuevo_estado):
@@ -114,19 +113,17 @@ class DBManager:
         conn = self.conectar()
         if conn:
             try:
-                cursor = conn.cursor()
-                consulta = """
-                    UPDATE Estaciones
-                    SET estado_actual = ? WHERE id_estacion = ?        
-                """
-                cursor.execute(consulta, (nuevo_estado, id_estacion))
-                
-                conn.commit()
-                print(f"Base de datos actualizada con éxito | PC: {id_estacion} Estado: {nuevo_estado}")
+                with conn.cursor() as cursor:
+                    consulta = """
+                        UPDATE Estaciones
+                        SET estado_actual = ? WHERE id_estacion = ?        
+                    """
+                    cursor.execute(consulta, (nuevo_estado, id_estacion))
+                    conn.commit()
+                    print(f"Base de datos actualizada con éxito | PC: {id_estacion} Estado: {nuevo_estado}")
             except pyodbc.Error as e:
                 print(f"Error al actualizar la base de datos: {e}")
             finally:
-                cursor.close()
                 conn.close()
     
     def obtener_todos_los_usuarios(self):
@@ -135,22 +132,21 @@ class DBManager:
         lista_usuarios = []
         if conn:
             try:
-                cursor = conn.cursor()
-                cursor.execute(
-                    "SELECT id_usuario, alias_gamer FROM Usuarios ORDER BY alias_gamer ASC"
-                )
-                filas = cursor.fetchall()
-                
-                for fila in filas:
-                    usuario = {
-                        "id_usuario": fila[0],
-                        "alias_gamer": fila[1]
-                    }
-                    lista_usuarios.append(usuario)
+                with conn.cursor() as cursor:
+                    cursor.execute(
+                        "SELECT id_usuario, alias_gamer FROM Usuarios ORDER BY alias_gamer ASC"
+                    )
+                    filas = cursor.fetchall()
+                    
+                    for fila in filas:
+                        usuario = {
+                            "id_usuario": fila[0],
+                            "alias_gamer": fila[1]
+                        }
+                        lista_usuarios.append(usuario)
             except pyodbc.Error as e:
                 print(f"Error al listar los usuarios: {e}")
             finally:
-                cursor.close()
                 conn.close()
                 
         return lista_usuarios
@@ -161,25 +157,22 @@ class DBManager:
         datos_usuario = None
         if conn:
             try:
-                cursor =  conn.cursor()
-                #Se añade una coma para que sea una tupla de un solo elemento
-                consulta = "SELECT id_usuario, alias_gamer, rango_cuenta, saldo_billetera, minutos_acumulados FROM Usuarios WHERE id_usuario = ?"
-                cursor.execute(consulta, (id_usuario,))
-                fila = cursor.fetchone()
-                
-                if fila:
-                    datos_usuario = {
-                        "id_usuario": fila[0],
-                        "alias_gamer": fila[1],
-                        "rango_cuenta": fila[2],
-                        "saldo_billetera": float(fila[3]),
-                        "minutos_acumulados" : fila[4]
-                    }
-                
+                with conn.cursor() as cursor:
+                    consulta = "SELECT id_usuario, alias_gamer, rango_cuenta, saldo_billetera, minutos_acumulados FROM Usuarios WHERE id_usuario = ?"
+                    cursor.execute(consulta, (id_usuario,))
+                    fila = cursor.fetchone()
+                    
+                    if fila:
+                        datos_usuario = {
+                            "id_usuario": fila[0],
+                            "alias_gamer": fila[1],
+                            "rango_cuenta": fila[2],
+                            "saldo_billetera": float(fila[3]),
+                            "minutos_acumulados" : fila[4]
+                        }
             except pyodbc.Error as e:
                 print(f"Error al leer el usuario: {e}")
             finally:
-                cursor.close()
                 conn.close()
                 
         return datos_usuario
@@ -189,16 +182,14 @@ class DBManager:
         conn = self.conectar()
         if conn:
             try:
-                cursor = conn.cursor()
-                
-                consulta = "UPDATE Usuarios SET saldo_billetera = ? WHERE id_usuario = ?"
-                cursor.execute(consulta, (nuevo_saldo, id_usuario))
-                conn.commit()
-                print(f"Base de datos actualizada con éxito | id_usuario: {id_usuario} | Nuevo Saldo: {nuevo_saldo:.2f}")
+                with conn.cursor() as cursor:
+                    consulta = "UPDATE Usuarios SET saldo_billetera = ? WHERE id_usuario = ?"
+                    cursor.execute(consulta, (nuevo_saldo, id_usuario))
+                    conn.commit()
+                    print(f"Base de datos actualizada con éxito | id_usuario: {id_usuario} | Nuevo Saldo: {nuevo_saldo:.2f}")
             except pyodbc.Error as e:
                 print(f"Error al actualizar saldo: {e}")
             finally:
-                cursor.close()
                 conn.close()
                 
     def actualizar_progreso_usuario(self, id_usuario, saldo, rango, minutos):
@@ -206,10 +197,10 @@ class DBManager:
         conn = self.conectar()
         if conn:
             try:
-                cursor = conn.cursor()
-                consulta = "UPDATE Usuarios SET saldo_billetera = ?, rango_cuenta = ?, minutos_acumulados = ? WHERE id_usuario = ?"
-                cursor.execute(consulta, (saldo, rango, minutos, id_usuario))
-                conn.commit()
+                with conn.cursor() as cursor:
+                    consulta = "UPDATE Usuarios SET saldo_billetera = ?, rango_cuenta = ?, minutos_acumulados = ? WHERE id_usuario = ?"
+                    cursor.execute(consulta, (saldo, rango, minutos, id_usuario))
+                    conn.commit()
             except pyodbc.Error as e:
                 print(f"Error al actualizar progreso del usuario: {e}")
             finally:
@@ -220,21 +211,19 @@ class DBManager:
         conn = self.conectar()
         if conn:
             try:
-                cursor = conn.cursor()
-                
-                consulta = """
-                    INSERT INTO Usuarios (alias_gamer, rango_cuenta, saldo_billetera)
-                    VALUES (?, ?, ?)
-                """
-                cursor.execute(consulta, (alias_gamer, rango_cuenta, saldo_inicial))
-                conn.commit()
-                print(f"Usuario {alias_gamer} guardado en la base de datos con éxito")
-                return True
+                with conn.cursor() as cursor:
+                    consulta = """
+                        INSERT INTO Usuarios (alias_gamer, rango_cuenta, saldo_billetera)
+                        VALUES (?, ?, ?)
+                    """
+                    cursor.execute(consulta, (alias_gamer, rango_cuenta, saldo_inicial))
+                    conn.commit()
+                    print(f"Usuario {alias_gamer} guardado en la base de datos con éxito")
+                    return True
             except pyodbc.Error as e:
                 print(f"Error al registrar el usuario en la base de datos: {e}")
                 return False
             finally:
-                cursor.close()
                 conn.close()
         return False
                 
@@ -243,18 +232,17 @@ class DBManager:
         conn = self.conectar()
         if conn:
             try:
-                cursor = conn.cursor()
-                consulta = """
-                    INSERT INTO Sesiones (id_usuario, id_estacion, hora_inicio, hora_fin, monto_cobrado)
-                    VALUES (?, ?, ?, ?, ?)
-                """
-                cursor.execute(consulta, (id_usuario, id_estacion, hora_inicio, hora_fin, monto_cobrado))
-                conn.commit()
-                print(f"Historial guardado: PC {id_estacion} | Usuario {id_usuario} | Cobro: S/{monto_cobrado:.2f}")
+                with conn.cursor() as cursor:
+                    consulta = """
+                        INSERT INTO Sesiones (id_usuario, id_estacion, hora_inicio, hora_fin, monto_cobrado)
+                        VALUES (?, ?, ?, ?, ?)
+                    """
+                    cursor.execute(consulta, (id_usuario, id_estacion, hora_inicio, hora_fin, monto_cobrado))
+                    conn.commit()
+                    print(f"Historial guardado: PC {id_estacion} | Usuario {id_usuario} | Cobro: S/{monto_cobrado:.2f}")
             except pyodbc.Error as e:
                 print(f"Error al guardar el historial de la sesión: {e}")
             finally:
-                cursor.close()
                 conn.close()
     
     def obtener_reporte_caja_hoy(self):
@@ -263,23 +251,20 @@ class DBManager:
         
         if conn:
             try:
-                cursor = conn.cursor()
-                #Usamos CAST(GETDAY() AS DATE)
-                consulta = """
-                    SELECT SUM(monto_cobrado)
-                    FROM Sesiones
-                    WHERE CAST(hora_fin AS DATE) = CAST(GETDATE() AS DATE)
-                """
-                cursor.execute(consulta)
-                resultado = cursor.fetchone()
-                
-                if resultado and resultado[0] is not None:
-                    total_ingresos = float(resultado[0])
+                with conn.cursor() as cursor:
+                    consulta = """
+                        SELECT SUM(monto_cobrado)
+                        FROM Sesiones
+                        WHERE CAST(hora_fin AS DATE) = CAST(GETDATE() AS DATE)
+                    """
+                    cursor.execute(consulta)
+                    resultado = cursor.fetchone()
                     
+                    if resultado and resultado[0] is not None:
+                        total_ingresos = float(resultado[0])
             except pyodbc.Error as e:
                 print(f"Error al generar reporte de caja: {e}")
             finally:
-                cursor.close()
                 conn.close()
         return total_ingresos
     
@@ -289,20 +274,19 @@ class DBManager:
         id_sesion = None
         if conn:
             try:
-                cursor = conn.cursor()
-                consulta = """
-                    INSERT INTO Sesiones (id_usuario, id_estacion, hora_inicio, hora_fin, monto_cobrado)
-                    OUTPUT INSERTED.id_sesion
-                    VALUES (?, ?, ?, NULL, NULL)
-                """
-                cursor.execute(consulta, (id_usuario, id_estacion, hora_inicio))
-                id_sesion = cursor.fetchone()[0]
-                conn.commit()
-                print(f"Sesión de usuario {id_usuario} en PC {id_estacion} guardada en BD con ID: {id_sesion}")
+                with conn.cursor() as cursor:
+                    consulta = """
+                        INSERT INTO Sesiones (id_usuario, id_estacion, hora_inicio, hora_fin, monto_cobrado)
+                        OUTPUT INSERTED.id_sesion
+                        VALUES (?, ?, ?, NULL, NULL)
+                    """
+                    cursor.execute(consulta, (id_usuario, id_estacion, hora_inicio))
+                    id_sesion = cursor.fetchone()[0]
+                    conn.commit()
+                    print(f"Sesión de usuario {id_usuario} en PC {id_estacion} guardada en BD con ID: {id_sesion}")
             except pyodbc.Error as e:
                 print(f"Error al registrar inicio de sesión en BD: {e}")
             finally:
-                cursor.close()
                 conn.close()
         return id_sesion
     
@@ -312,20 +296,19 @@ class DBManager:
         exito = False
         if conn:
             try:
-                cursor = conn.cursor()
-                consulta = """
-                    UPDATE Sesiones
-                    SET hora_fin = ?, monto_cobrado = ?
-                    WHERE id_sesion = ?
-                """
-                cursor.execute(consulta, (hora_fin, monto_cobrado, id_sesion))
-                conn.commit()
-                exito = True
-                print(f"Sesión {id_sesion} finalizada en BD. Cobro: S/ {monto_cobrado:.2f}")
+                with conn.cursor() as cursor:
+                    consulta = """
+                        UPDATE Sesiones
+                        SET hora_fin = ?, monto_cobrado = ?
+                        WHERE id_sesion = ?
+                    """
+                    cursor.execute(consulta, (hora_fin, monto_cobrado, id_sesion))
+                    conn.commit()
+                    exito = True
+                    print(f"Sesión {id_sesion} finalizada en BD. Cobro: S/ {monto_cobrado:.2f}")
             except pyodbc.Error as e:
                 print(f"Error al actualizar fin de sesión en BD: {e}")
             finally:
-                cursor.close()
                 conn.close()
         return exito
     
@@ -335,25 +318,24 @@ class DBManager:
         lista_sesiones = []
         if conn:
             try:
-                cursor = conn.cursor()
-                consulta = """
-                    SELECT id_sesion, id_usuario, id_estacion, hora_inicio
-                    FROM Sesiones
-                    WHERE hora_fin IS NULL
-                """
-                cursor.execute(consulta)
-                filas = cursor.fetchall()
-                for fila in filas:
-                    lista_sesiones.append({
-                        "id_sesion": fila[0],
-                        "id_usuario": fila[1],
-                        "id_estacion": fila[2],
-                        "hora_inicio": fila[3]
-                    })
+                with conn.cursor() as cursor:
+                    consulta = """
+                        SELECT id_sesion, id_usuario, id_estacion, hora_inicio
+                        FROM Sesiones
+                        WHERE hora_fin IS NULL
+                    """
+                    cursor.execute(consulta)
+                    filas = cursor.fetchall()
+                    for fila in filas:
+                        lista_sesiones.append({
+                            "id_sesion": fila[0],
+                            "id_usuario": fila[1],
+                            "id_estacion": fila[2],
+                            "hora_inicio": fila[3]
+                        })
             except pyodbc.Error as e:
                 print(f"Error al obtener sesiones activas: {e}")
             finally:
-                cursor.close()
                 conn.close()
         return lista_sesiones
     
@@ -362,18 +344,17 @@ class DBManager:
         conn = self.conectar()
         if conn:
             try:
-                cursor = conn.cursor()
-                consulta = """
-                    INSERT INTO Ventas_Kiosco (id_usuario, id_producto, monto)
-                    VALUES (?, ?, ?)
-                """
-                cursor.execute(consulta, (id_usuario, id_producto, monto))
-                conn.commit()
-                print(f"Venta registrada en historial | ID Prod: {id_producto} | S/ {monto:.2f}")
+                with conn.cursor() as cursor:
+                    consulta = """
+                        INSERT INTO Ventas_Kiosco (id_usuario, id_producto, monto)
+                        VALUES (?, ?, ?)
+                    """
+                    cursor.execute(consulta, (id_usuario, id_producto, monto))
+                    conn.commit()
+                    print(f"Venta registrada en historial | ID Prod: {id_producto} | S/ {monto:.2f}")
             except pyodbc.Error as e:
                 print(f"Error al registrar la venta en la BD: {e}")
             finally:
-                cursor.close()
                 conn.close()
                 
     def obtener_reporte_tienda_hoy(self):
@@ -383,22 +364,20 @@ class DBManager:
         
         if conn:
             try:
-                cursor = conn.cursor()
-                consulta = """
-                    SELECT SUM(monto) 
-                    FROM Ventas_Kiosco 
-                    WHERE CAST(fecha_venta AS DATE) = CAST(GETDATE() AS DATE)
-                """
-                cursor.execute(consulta)
-                resultado = cursor.fetchone()
-                
-                if resultado and resultado[0] is not None:
-                    total_ingresos = float(resultado[0])
+                with conn.cursor() as cursor:
+                    consulta = """
+                        SELECT SUM(monto) 
+                        FROM Ventas_Kiosco 
+                        WHERE CAST(fecha_venta AS DATE) = CAST(GETDATE() AS DATE)
+                    """
+                    cursor.execute(consulta)
+                    resultado = cursor.fetchone()
                     
+                    if resultado and resultado[0] is not None:
+                        total_ingresos = float(resultado[0])
             except pyodbc.Error as e:
                 print(f"Error al generar reporte de tienda: {e}")
             finally:
-                cursor.close()
                 conn.close()
                 
         return total_ingresos
@@ -406,32 +385,31 @@ class DBManager:
     def validar_login(self, usuario, clave):
         """Busca las credenciales en la BD y retorna los datos del empleado si son correctas"""
         conn = self.conectar()
+        datos_empleado = None
         if conn:
             try:
-                cursor = conn.cursor()
-                consulta = "SELECT id_empleado, nombre, rol FROM Empleados WHERE usuario = ? AND clave = ?"
-                cursor.execute(consulta, (usuario, clave))
-                fila = cursor.fetchone()
-                
-                if fila:
-                    datos_empleado = {
-                        "id_empleado" : fila[0],
-                        "nombre" : fila[1],
-                        "rol" : fila[2]
-                    }
-                    print(f"Login exitoso: Bienvenido {datos_empleado["nombre"]}")
-                else:
-                    print(f"Intento de acceso fallido: Credenciales incorrectas")
+                with conn.cursor() as cursor:
+                    consulta = "SELECT id_empleado, nombre, rol FROM Empleados WHERE usuario = ? AND clave = ?"
+                    cursor.execute(consulta, (usuario, clave))
+                    fila = cursor.fetchone()
+                    
+                    if fila:
+                        datos_empleado = {
+                            "id_empleado" : fila[0],
+                            "nombre" : fila[1],
+                            "rol" : fila[2]
+                        }
+                        print(f"Login exitoso: Bienvenido {datos_empleado['nombre']}")
+                    else:
+                        print(f"Intento de acceso fallido: Credenciales incorrectas")
             except pyodbc.Error as e:
                 print(f"Error al validar credenciales en la BD: {e}")
             finally:
-                cursor.close()
                 conn.close()
         return datos_empleado
     
 if __name__ == "__main__":
     manager = DBManager()
-    #manager.probar_conexion()
     pcs_reales = manager.obtener_estaciones()
     for pc in pcs_reales:
         print(pc)

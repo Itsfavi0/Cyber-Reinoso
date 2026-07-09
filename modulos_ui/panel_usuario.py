@@ -12,7 +12,7 @@ COLOR_DISPONIBLE = "#00E676"
 
 class PanelUsuario(tk.LabelFrame):
     def __init__(self, parent, controlador, *args, **kwargs):
-        super().__init__(parent, text="Módulo del Cliente", font=("Arial", 12, "bold"), bg=BG_PANEL, fg=TEXTO_MAIN, padx=20, pady=20, *args, **kwargs)
+        super().__init__(parent, text="Módulo del Cliente", font=("Segoe UI", 12, "bold"), bg=BG_PANEL, fg=TEXTO_MAIN, padx=20, pady=20, *args, **kwargs)
         self.controlador = controlador
         self.dibujar_panel()
 
@@ -25,22 +25,22 @@ class PanelUsuario(tk.LabelFrame):
         frame_seleccion = tk.Frame(self, bg=BG_PANEL)
         frame_seleccion.pack(fill=tk.X, pady=(0,15))
         
-        tk.Label(frame_seleccion, text="Seleccionar Cliente:", font=("Arial", 10, "bold"), bg=BG_PANEL, fg=TEXTO_MAIN).pack(anchor="w")
+        tk.Label(frame_seleccion, text="Seleccionar Cliente:", font=("Segoe UI", 10, "bold"), bg=BG_PANEL, fg=TEXTO_MAIN).pack(anchor="w")
         
         db = DBManager()
         todos_los_usuarios = db.obtener_todos_los_usuarios()
         
         lista_nombres = [f"{u['id_usuario']} - {u['alias_gamer']}" for u in todos_los_usuarios]
-        self.combo_usuarios = ttk.Combobox(frame_seleccion, values=lista_nombres, state="readonly", font=("Arial", 11))
+        self.combo_usuarios = ttk.Combobox(frame_seleccion, values=lista_nombres, state="readonly", font=("Segoe UI", 11))
         self.combo_usuarios.pack(fill=tk.X, pady=5)
         self.combo_usuarios.set(f"{usuario.id_usuario} - {usuario.alias_gamer}") 
         
         self.combo_usuarios.bind("<<ComboboxSelected>>", self.controlador.cambiar_usuario_activo)
         
-        tk.Label(self, text="Gamer:", font=("Arial", 10), bg=BG_PANEL, fg=TEXTO_SECUNDARIO).pack(anchor="w")
-        tk.Label(self, text=usuario.alias_gamer, font=("Arial", 14, "bold"), bg=BG_PANEL, fg=TEXTO_MAIN).pack(anchor="w", pady=(0, 15))
+        tk.Label(self, text="Gamer:", font=("Segoe UI", 9, "bold"), bg=BG_PANEL, fg=TEXTO_SECUNDARIO).pack(anchor="w")
+        tk.Label(self, text=usuario.alias_gamer, font=("Segoe UI", 14, "bold"), bg=BG_PANEL, fg=TEXTO_MAIN).pack(anchor="w", pady=(0, 15))
         
-        tk.Label(self, text="Rango:", font=("Arial", 10), bg=BG_PANEL, fg=TEXTO_SECUNDARIO).pack(anchor="w")
+        tk.Label(self, text="Rango:", font=("Segoe UI", 9, "bold"), bg=BG_PANEL, fg=TEXTO_SECUNDARIO).pack(anchor="w")
         
         colores_rango = {
             "Bronce": "#CD7F32",     # Color cobre/bronce
@@ -50,12 +50,81 @@ class PanelUsuario(tk.LabelFrame):
         }
         color_rango = colores_rango.get(usuario.rango_cuenta, TEXTO_MAIN)
         
-        tk.Label(self, text=usuario.rango_cuenta, font=("Arial", 14, "bold"), bg=BG_PANEL, fg=color_rango).pack(anchor="w", pady=(0, 15))
+        tk.Label(self, text=usuario.rango_cuenta, font=("Segoe UI", 14, "bold"), bg=BG_PANEL, fg=color_rango).pack(anchor="w", pady=(0, 15))
         
-        tk.Label(self, text="Saldo Disponible:", font=("Arial", 10), bg=BG_PANEL, fg=TEXTO_SECUNDARIO).pack(anchor="w")
-        tk.Label(self, text=f"S/ {usuario.saldo_billetera:.2f}", font=("Arial", 16, "bold"), bg=BG_PANEL, fg=COLOR_DISPONIBLE).pack(anchor="w", pady=(0, 20))
+        tk.Label(self, text="Saldo Disponible:", font=("Segoe UI", 9, "bold"), bg=BG_PANEL, fg=TEXTO_SECUNDARIO).pack(anchor="w")
+        tk.Label(self, text=f"S/ {usuario.saldo_billetera:.2f}", font=("Segoe UI", 18, "bold"), bg=BG_PANEL, fg=COLOR_DISPONIBLE).pack(anchor="w", pady=(0, 20))
         
-        tk.Button(self, text="Recargar Billetera", font=("Arial", 10, "bold"), bg="#2E7D32", fg="white", relief="flat", activebackground="#1B5E20", activeforeground="white", command=lambda: VentanaRecarga(self.controlador, self.controlador.usuario_prueba, callback_actualizar=self.controlador.refrescar_interfaz)).pack(anchor="w", pady=(0, 15))
-        tk.Button(self, text="Abrir Tienda / Snacks", font=("Arial", 12, "bold"), bg="#1565C0", fg="white", pady=10, relief="flat", activebackground="#0D47A1", activeforeground="white", command=lambda: VentanaTienda(self.controlador, usuario, callback_actualizar_panel=self.controlador.refrescar_interfaz)).pack(fill=tk.X, padx=10, pady=20)
-        tk.Button(self, text="Registrar nuevo Usuario", font=("Arial", 10, "bold"), bg="#6A1B9A", fg="white", relief="flat", activebackground="#4A148C", activeforeground="white", command=lambda: VentanaRegistro(self.controlador, callback_actualizar=self.controlador.refrescar_interfaz)).pack(fill=tk.X, pady=(15,0))
-        tk.Button(self, text="Reporte de Caja (Hoy)", font=("Arial", 10, "bold"), bg="#E65100", fg="white", relief="flat", activebackground="#BF360C", activeforeground="white", command=lambda: VentanaReporteCaja(self.controlador)).pack(fill=tk.X, pady=(10, 0))
+        # --- BOTONES MODERNOS CON HOVER ---
+        
+        # Botón 1: Recargar Billetera
+        self.btn_recargar = tk.Button(
+            self, 
+            text="Recargar Billetera", 
+            font=("Segoe UI", 10, "bold"), 
+            bg="#2E7D32", 
+            fg="white", 
+            relief="flat", 
+            activebackground="#1B5E20", 
+            activeforeground="white",
+            pady=6,
+            cursor="hand2",
+            command=lambda: VentanaRecarga(self.controlador, self.controlador.usuario_prueba, callback_actualizar=self.controlador.refrescar_interfaz)
+        )
+        self.btn_recargar.pack(fill=tk.X, pady=(0, 15))
+        self.btn_recargar.bind("<Enter>", lambda e: self.btn_recargar.config(bg="#388E3C"))
+        self.btn_recargar.bind("<Leave>", lambda e: self.btn_recargar.config(bg="#2E7D32"))
+        
+        # Botón 2: Abrir Tienda / Snacks
+        self.btn_tienda = tk.Button(
+            self, 
+            text="🛒 Abrir Tienda / Snacks", 
+            font=("Segoe UI", 11, "bold"), 
+            bg="#1565C0", 
+            fg="white", 
+            pady=10, 
+            relief="flat", 
+            activebackground="#0D47A1", 
+            activeforeground="white",
+            cursor="hand2",
+            command=lambda: VentanaTienda(self.controlador, usuario, callback_actualizar_panel=self.controlador.refrescar_interfaz)
+        )
+        self.btn_tienda.pack(fill=tk.X, pady=(0, 20))
+        self.btn_tienda.bind("<Enter>", lambda e: self.btn_tienda.config(bg="#1E88E5"))
+        self.btn_tienda.bind("<Leave>", lambda e: self.btn_tienda.config(bg="#1565C0"))
+        
+        # Botón 3: Registrar nuevo Usuario
+        self.btn_registro = tk.Button(
+            self, 
+            text="➕ Registrar nuevo Usuario", 
+            font=("Segoe UI", 10, "bold"), 
+            bg="#6A1B9A", 
+            fg="white", 
+            relief="flat", 
+            activebackground="#4A148C", 
+            activeforeground="white",
+            pady=6,
+            cursor="hand2",
+            command=lambda: VentanaRegistro(self.controlador, callback_actualizar=self.controlador.refrescar_interfaz)
+        )
+        self.btn_registro.pack(fill=tk.X, pady=(0, 15))
+        self.btn_registro.bind("<Enter>", lambda e: self.btn_registro.config(bg="#8E24AA"))
+        self.btn_registro.bind("<Leave>", lambda e: self.btn_registro.config(bg="#6A1B9A"))
+        
+        # Botón 4: Reporte de Caja
+        self.btn_reporte = tk.Button(
+            self, 
+            text="📊 Reporte de Caja (Hoy)", 
+            font=("Segoe UI", 10, "bold"), 
+            bg="#E65100", 
+            fg="white", 
+            relief="flat", 
+            activebackground="#BF360C", 
+            activeforeground="white",
+            pady=6,
+            cursor="hand2",
+            command=lambda: VentanaReporteCaja(self.controlador)
+        )
+        self.btn_reporte.pack(fill=tk.X)
+        self.btn_reporte.bind("<Enter>", lambda e: self.btn_reporte.config(bg="#F57C00"))
+        self.btn_reporte.bind("<Leave>", lambda e: self.btn_reporte.config(bg="#E65100"))

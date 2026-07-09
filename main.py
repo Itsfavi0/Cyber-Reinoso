@@ -19,10 +19,19 @@ class AppCyberReinoso(tk.Tk):
         # Ocultamos la ventana principal inmediatamente al arrancar
         self.withdraw()
         self.title("Cyber Reinoso - Smart Center Dashboard")
-        self.geometry("900x800")
+        
+        # Centrar la ventana principal
+        ancho = 1150
+        alto = 800
+        self.geometry(f"{ancho}x{alto}")
+        self.update_idletasks()
+        x = (self.winfo_screenwidth() // 2) - (ancho // 2)
+        y = (self.winfo_screenheight() // 2) - (alto // 2)
+        self.geometry(f"{ancho}x{alto}+{x}+{y}")
+        
         self.config(bg=BG_BASE)
         
-        #Levantamos el escudo de seguridad bloqueando el flujo
+        # Levantamos el escudo de seguridad bloqueando el flujo
         VentanaLogin(self)
         self.cargar_datos_iniciales()
         
@@ -69,8 +78,8 @@ class AppCyberReinoso(tk.Tk):
                 self.sesiones_activas[pc_obj.id_estacion] = Sesion(id_sesion=s["id_sesion"], usuario=gamer_obj, estacion=pc_obj, hora_inicio=s["hora_inicio"])
         
     def crear_interfaz(self):
-        lbl_titulo = tk.Label(self, text="Panel de Control - Cyber Reinoso", font=("Arial", 18, "bold"), bg=BG_BASE, fg="#FFFFFF")
-        lbl_titulo.pack(pady=10)
+        lbl_titulo = tk.Label(self, text="Cyber Reinoso • Smart Center Dashboard", font=("Segoe UI", 20, "bold"), bg=BG_BASE, fg="#FFFFFF")
+        lbl_titulo.pack(pady=15)
         
         self.contenedor_principal = tk.Frame(self, bg=BG_BASE)
         self.contenedor_principal.pack(expand=True, fill="both", padx=10, pady=10)
@@ -102,6 +111,16 @@ class AppCyberReinoso(tk.Tk):
         self.usuario_ui.dibujar_panel()
 
     def iniciar_sesion(self, maquina_seleccionada):
+        # Verificar si el usuario ya tiene otra sesión activa
+        for id_est, sesion in self.sesiones_activas.items():
+            if sesion.usuario.id_usuario == self.usuario_prueba.id_usuario:
+                messagebox.showwarning(
+                    "Usuario con sesión activa",
+                    f"El gamer {self.usuario_prueba.alias_gamer} ya tiene una sesión activa en la PC {sesion.estacion.codigo_pc}.",
+                    parent=self
+                )
+                return
+
         costo_minimo = maquina_seleccionada.calcular_tarifa(1)
         if self.usuario_prueba.saldo_billetera < costo_minimo:
             messagebox.showwarning("Saldo insuficiente", f"Saldo insuficiente. Mínimo requerido: S/{costo_minimo:.2f}")
@@ -122,7 +141,7 @@ class AppCyberReinoso(tk.Tk):
             usuario = sesion_actual.usuario
             db = DBManager()
             try:
-                sesion_actual.finalizar_sesion()
+                sesion_actual.finalizar_sesion(es_corte_automatico=es_corte_automatico)
                 
                 #calculamos los minutos jugados
                 minutos_jugados = int((sesion_actual.hora_fin - sesion_actual.hora_inicio).total_seconds() // 60)
