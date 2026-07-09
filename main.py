@@ -21,8 +21,8 @@ class AppCyberReinoso(tk.Tk):
         self.title("Cyber Reinoso - Smart Center Dashboard")
         
         # Centrar la ventana principal
-        ancho = 1150
-        alto = 800
+        ancho = 1250
+        alto = 900
         self.geometry(f"{ancho}x{alto}")
         self.update_idletasks()
         x = (self.winfo_screenwidth() // 2) - (ancho // 2)

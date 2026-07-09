@@ -1,5 +1,9 @@
 import tkinter as tk
+import os
+from PIL import Image, ImageTk
 
+# --- PALETA MODO OSCURO COHERENTE ---
+# ... (tus colores se mantienen igual)
 # --- PALETA MODO OSCURO COHERENTE ---
 BG_BASE = "#121212"
 BG_PANEL = "#1E1E1E"
@@ -23,6 +27,8 @@ class PanelMapa(tk.Frame):
         for widget in self.winfo_children():
             widget.destroy()
 
+        self.imagenes_referecia = [] # Lista para mantener referencias a las imágenes y evitar que se recojan por el GC
+
         columnas_maximas = 3
         
         # Configurar columnas para que se expandan proporcionalmente
@@ -39,44 +45,91 @@ class PanelMapa(tk.Frame):
             fila = index // columnas_maximas
             columna = index % columnas_maximas
             
+            # 1. COLORES POR CATEGORÍA (Para el borde y el título)
+            if pc.categoria == "Streaming VIP":
+                color_categoria = "#FFCA28"  # Dorado VIP
+            elif pc.categoria == "eSports":
+                color_categoria = "#B388FF"  # Morado Neón
+            else:
+                color_categoria = "#29B6F6"  # Azul Regular
+            
+            # 2. LÓGICA DE ESTADOS (Para el texto de estado y los botones)
             if pc.estado == "Disponible":
-                color_borde = COLOR_DISPONIBLE
+                color_estado = COLOR_DISPONIBLE
                 texto_boton = "Asignar PC"
                 estado_boton = tk.NORMAL
-                bg_btn_color = "#1B5E20"  # Verde oscuro para asignar
+                bg_btn_color = "#1B5E20"
                 hover_btn_color = COLOR_DISPONIBLE
                 comando_btn = lambda maquina=pc: self.controlador.iniciar_sesion(maquina)
             elif pc.estado == "Mantenimiento":
-                color_borde = COLOR_MANTENIMIENTO
+                color_estado = COLOR_MANTENIMIENTO
                 texto_boton = "En Soporte"
                 estado_boton = tk.DISABLED
                 bg_btn_color = BG_BOTON
                 hover_btn_color = BG_BOTON
                 comando_btn = lambda: None
             else:
-                color_borde = COLOR_OCUPADA
+                color_estado = COLOR_OCUPADA
                 texto_boton = "Finalizar Turno"
                 estado_boton = tk.NORMAL
-                bg_btn_color = "#B71C1C"  # Rojo oscuro para terminar
+                bg_btn_color = "#B71C1C"
                 hover_btn_color = COLOR_OCUPADA
-                comando_btn = lambda maquina=pc: self.controlador.cerrar_sesion(maquina) 
+                comando_btn = lambda maquina=pc: self.controlador.cerrar_sesion(maquina)
                 
             # Frame de la PC individual (Tarjeta) con sticky="nsew" para tamaño homogéneo
             frame_pc = tk.Frame(
                 self, 
                 bg=BG_PANEL, 
-                highlightbackground=color_borde, 
+                highlightbackground=color_categoria, #Cambio de color del borde
                 highlightthickness=2, 
                 padx=15, 
                 pady=15
             )
             frame_pc.grid(row=fila, column=columna, padx=12, pady=12, sticky="nsew")
             
+            ruta_especifica = f"assets/{pc.codigo_pc}.png"
+            ruta_default = f"assets/{pc.categoria.replace(' ', '_').lower()}.png"
+            
+            ruta_final = ruta_especifica if os.path.exists(ruta_especifica) else ruta_default if os.path.exists(ruta_default) else None
+            if ruta_final:
+                try:
+                    img_original = Image.open(ruta_final)
+                    img_redimensionada = img_original.resize((140, 90), Image.Resampling.LANCZOS)
+                    foto = ImageTk.PhotoImage(img_redimensionada)
+                    
+                    lbl_imagen = tk.Label(frame_pc, image=foto, bg=BG_PANEL)
+                    lbl_imagen.image = foto  # Mantener referencia
+                    lbl_imagen.pack(pady=(0, 10))
+                    self.imagenes_referecia.append(foto)  # Evitar recolección
+                except Exception as e:
+                    print(f"Error cargando imagen para {pc.codigo_pc}: {e}")
+                    tk.Frame(frame_pc, bg=BG_BOTON, width=140, height=90).pack(pady=(0, 10))            
+            else:
+                tk.Frame(frame_pc, bg=BG_BOTON, width=140, height=90).pack(pady=(0, 10))
+            
             # Etiquetas informativas
             tk.Label(frame_pc, text=pc.codigo_pc, font=("Segoe UI", 13, "bold"), bg=BG_PANEL, fg=TEXTO_MAIN).pack(pady=(0, 2))
-            tk.Label(frame_pc, text=pc.categoria.upper(), font=("Segoe UI", 9, "bold"), bg=BG_PANEL, fg=TEXTO_SECUNDARIO).pack()
-            tk.Label(frame_pc, text=pc.estado, font=("Segoe UI", 10, "bold"), bg=BG_PANEL, fg=color_borde).pack(pady=8)
+            tk.Label(frame_pc, text=pc.categoria.upper(), font=("Segoe UI", 10, "bold"), bg=BG_PANEL, fg=color_categoria).pack()
             
+            # --- MEJORA DE UI: Especificaciones limpias sin recortes ---
+            if hasattr(pc, 'especificaciones') and pc.especificaciones:
+                cpu = pc.especificaciones.get('procesador', '')
+                monitor = pc.especificaciones.get('monitor', '')
+                specs_texto = f"💻 {cpu}\n🖥️ {monitor}"
+                
+                tk.Label(
+                    frame_pc, 
+                    text=specs_texto, 
+                    font=("Segoe UI", 8), 
+                    bg=BG_PANEL, 
+                    fg=TEXTO_SECUNDARIO,
+                    justify="center",
+                    wraplength=170 
+                ).pack(pady=(2, 5))
+            # -----------------------------------------------------------
+            
+            tk.Label(frame_pc, text=pc.estado, font=("Segoe UI", 11, "bold"), bg=BG_PANEL, fg=color_estado).pack(pady=5)
+                        
             # Cronómetro con fuente monoespaciada moderna
             lbl_tiempo = tk.Label(frame_pc, text="", font=("Segoe UI Mono", 11, "bold"), bg=BG_PANEL, fg=TEXTO_MAIN)
             lbl_tiempo.pack(pady=(0, 10))
