@@ -68,7 +68,11 @@ class PanelMapa(tk.Frame):
             fila = index // columnas_maximas
             columna = index % columnas_maximas
             
-            # 1. COLORES POR CATEGORÍA (Para el borde y el título)
+            # --- 1. DETECCIÓN DE MÓDULO VACÍO ---
+            # Si la base de datos devuelve None, marcamos la bandera
+            es_modulo_vacio = (pc.codigo_pc is None or pc.codigo_pc == "None")
+            
+            # 2. COLORES POR CATEGORÍA (Para el borde y el título)
             if pc.categoria == "Streaming VIP":
                 color_categoria = "#FFCA28"  # Dorado VIP
             elif pc.categoria == "eSports":
@@ -76,8 +80,16 @@ class PanelMapa(tk.Frame):
             else:
                 color_categoria = "#29B6F6"  # Azul Regular
             
-            # 2. LÓGICA DE ESTADOS (Para el texto de estado y los botones)
-            if pc.estado == "Disponible":
+            # 3. LÓGICA DE ESTADOS (Para el texto de estado y los botones)
+            if es_modulo_vacio:
+                color_estado = "#555555"
+                texto_estado = "Deshabilitado"
+                texto_boton = "Sin Equipo"
+                estado_boton = tk.DISABLED
+                bg_btn_color = BG_BOTON
+                hover_btn_color = BG_BOTON
+                comando_btn = lambda: None
+            elif pc.estado == "Disponible":
                 color_estado = COLOR_DISPONIBLE
                 texto_boton = "Asignar PC"
                 estado_boton = tk.NORMAL
@@ -110,10 +122,12 @@ class PanelMapa(tk.Frame):
             )
             frame_pc.grid(row=fila, column=columna, padx=12, pady=12, sticky="nsew")
             
-            ruta_especifica = f"assets/{pc.codigo_pc}.png"
-            ruta_default = f"assets/{pc.categoria.replace(' ', '_').lower()}.png"
-            
-            ruta_final = ruta_especifica if os.path.exists(ruta_especifica) else ruta_default if os.path.exists(ruta_default) else None
+            # Si está vacío, ni siquiera intentamos buscar imagen
+            ruta_final = None
+            if not es_modulo_vacio:
+                ruta_especifica = f"assets/{pc.codigo_pc}.png"
+                ruta_default = f"assets/{pc.categoria.replace(' ', '_').lower()}.png"
+                ruta_final = ruta_especifica if os.path.exists(ruta_especifica) else ruta_default if os.path.exists(ruta_default) else None
             if ruta_final:
                 try:
                     img_original = Image.open(ruta_final)
@@ -130,27 +144,34 @@ class PanelMapa(tk.Frame):
             else:
                 tk.Frame(frame_pc, bg=BG_BOTON, width=140, height=90).pack(pady=(0, 10))
             
-            # Etiquetas informativas
-            tk.Label(frame_pc, text=pc.codigo_pc, font=("Segoe UI", 13, "bold"), bg=BG_PANEL, fg=TEXTO_MAIN).pack(pady=(0, 2))
+            # --- ETIQUETAS INFORMATIVAS ---
+            # Cambiamos "None" por un texto amigable
+            titulo_pc = "MÓDULO VACÍO" if es_modulo_vacio else pc.codigo_pc
+            tk.Label(frame_pc, text=titulo_pc, font=("Segoe UI", 13, "bold"), bg=BG_PANEL, fg=TEXTO_MAIN).pack(pady=(0, 2))
+            
             tk.Label(frame_pc, text=pc.categoria.upper(), font=("Segoe UI", 10, "bold"), bg=BG_PANEL, fg=color_categoria).pack()
             
-            # --- MEJORA DE UI: Especificaciones limpias sin recortes ---
-            if hasattr(pc, 'especificaciones') and pc.especificaciones:
-                cpu = pc.especificaciones.get('procesador', '')
-                monitor = pc.especificaciones.get('monitor', '')
+            # Ajuste de especificaciones
+            if es_modulo_vacio:
+                specs_texto = "⚠️\nSin hardware asignado\nMesa inoperativa"
+            elif hasattr(pc, 'especificaciones') and pc.especificaciones:
+                cpu = pc.especificaciones.get('procesador', 'No Disp.')
+                monitor = pc.especificaciones.get('monitor', 'No Disp.')
                 specs_texto = f"💻 {cpu}\n🖥️ {monitor}"
+            else:
+                specs_texto = "Sin Especificaciones"
                 
-                tk.Label(
-                    frame_pc, 
-                    text=specs_texto, 
-                    font=("Segoe UI", 8), 
-                    bg=BG_PANEL, 
-                    fg=TEXTO_SECUNDARIO,
-                    justify="center",
-                    wraplength=170 
-                ).pack(pady=(2, 5))
+            tk.Label(
+                frame_pc, 
+                text=specs_texto, 
+                font=("Segoe UI", 8), 
+                bg=BG_PANEL, 
+                fg=TEXTO_SECUNDARIO,
+                justify="center",
+                wraplength=170 
+            ).pack(pady=(2, 5))
             # -----------------------------------------------------------
-            
+            # Estado
             tk.Label(frame_pc, text=pc.estado, font=("Segoe UI", 11, "bold"), bg=BG_PANEL, fg=color_estado).pack(pady=5)
                         
             # Cronómetro con fuente monoespaciada moderna

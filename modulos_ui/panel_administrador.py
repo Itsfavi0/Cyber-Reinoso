@@ -26,9 +26,11 @@ class PanelAdministrador(tk.LabelFrame):
         tk.Label(self, text="⚙️ Actualizar Hardware:", font=("Segoe UI", 10, "bold"), bg=BG_PANEL, fg=TEXTO_MAIN).pack(anchor="w", pady=(0, 5))
         
         # Selector de PC a modificar
-        self.combo_pcs = ttk.Combobox(self, values=[pc.codigo_pc for pc in self.controlador.lista_pcs], state="readonly", font=("Segoe UI", 10))
+        pcs_validas = [pc.codigo_pc for pc in self.controlador.lista_pcs if pc.codigo_pc and pc.codigo_pc != "None"]
+        self.combo_pcs = ttk.Combobox(self, values=pcs_validas, state="readonly", font=("Segoe UI", 10))
         self.combo_pcs.pack(fill=tk.X, pady=(0, 10))
-        if self.controlador.lista_pcs:
+        
+        if pcs_validas:
             self.combo_pcs.current(0)
 
         # Campos de texto de componentes
@@ -59,7 +61,7 @@ class PanelAdministrador(tk.LabelFrame):
         cpu = self.entry_cpu.get().strip()
         mon = self.entry_monitor.get().strip()
 
-        if not cpu or not mon:
+        if not cpu and not mon:
             messagebox.showwarning("Campos Vacíos", "Por favor rellene los nuevos componentes.", parent=self)
             return
 

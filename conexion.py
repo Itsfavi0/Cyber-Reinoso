@@ -430,8 +430,25 @@ class DBManager:
         if conn:
             try:
                 with conn.cursor() as cursor:
-                    consulta = "UPDATE Computadoras SET procesador = ?, monitor = ? WHERE codigo_pc = ?"
-                    cursor.execute(consulta, (procesador, monitor, codigo_pc))
+                    # 1. Construimos la consulta según qué campos tienen texto
+                    campos_set = []
+                    valores = []
+                    
+                    if procesador:
+                        campos_set.append("procesador = ?")
+                        valores.append(procesador)
+                    
+                    if monitor:
+                        campos_set.append("monitor = ?")
+                        valores.append(monitor)
+                        
+                    if not campos_set:
+                        return False  # No hay campos para actualizar
+                    
+                    consulta = f"UPDATE Computadoras SET {', '.join(campos_set)} WHERE codigo_pc = ?"
+                    valores.append(codigo_pc)
+                    
+                    cursor.execute(consulta, tuple(valores))
                     conn.commit()
                     return True
             except pyodbc.Error as e:
@@ -446,11 +463,17 @@ class DBManager:
         if conn:
             try:
                 with conn.cursor() as cursor:
-                    consulta = "DELETE FROM Computadoras WHERE codigo_pc = ?"
-                    cursor.execute(consulta, (codigo_pc,))
+                    consulta_desvincular = "UPDATE Estaciones SET codigo_pc = NULL WHERE codigo_pc = ?"
+                    cursor.execute(consulta_desvincular, (codigo_pc,))
+                    
+                    consulta_eliminar = "DELETE FROM Computadoras WHERE codigo_pc = ?"
+                    cursor.execute(consulta_eliminar, (codigo_pc,))
+                    
                     conn.commit()
+                    print(f"Transacción Delete Exitosa: Hardware {codigo_pc} desvinculado y eliminado.")
                     return True
             except pyodbc.Error as e:
+                conn.rollback() # Si algo falla, deshacemos todo para no dejar la base corrupta
                 print(f"Error CRUD Delete PC: {e}")
             finally:
                 conn.close()
