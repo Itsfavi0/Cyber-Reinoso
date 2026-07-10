@@ -21,6 +21,11 @@ class AppCyberReinoso(tk.Tk):
         self.withdraw()
         self.title("Cyber Reinoso - Smart Center Dashboard")
         
+        try:
+            self.iconbitmap("assets/logo.ico")
+        except Exception as e:
+            print(f"Aviso: No se pudo cargar el archivo .ico de la ventana principal: {e}")
+        
         # Centrar la ventana principal
         ancho = 1250
         alto = 900
