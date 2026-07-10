@@ -424,6 +424,54 @@ class DBManager:
                 conn.close()
         return datos_empleado
     
+    def actualizar_hardware_pc(self, codigo_pc, procesador, monitor):
+        """CRUD: Update - Modifica los componentes de una PC física"""
+        conn = self.conectar()
+        if conn:
+            try:
+                with conn.cursor() as cursor:
+                    consulta = "UPDATE Computadoras SET procesador = ?, monitor = ? WHERE codigo_pc = ?"
+                    cursor.execute(consulta, (procesador, monitor, codigo_pc))
+                    conn.commit()
+                    return True
+            except pyodbc.Error as e:
+                print(f"Error CRUD Update PC: {e}")
+            finally:
+                conn.close()
+        return False
+
+    def eliminar_pc_fisica(self, codigo_pc):
+        """CRUD: Delete - Elimina un registro de hardware de la BD"""
+        conn = self.conectar()
+        if conn:
+            try:
+                with conn.cursor() as cursor:
+                    consulta = "DELETE FROM Computadoras WHERE codigo_pc = ?"
+                    cursor.execute(consulta, (codigo_pc,))
+                    conn.commit()
+                    return True
+            except pyodbc.Error as e:
+                print(f"Error CRUD Delete PC: {e}")
+            finally:
+                conn.close()
+        return False
+
+    def eliminar_usuario_gamer(self, id_usuario):
+        """CRUD: Delete - Elimina una cuenta de usuario gamer de la BD"""
+        conn = self.conectar()
+        if conn:
+            try:
+                with conn.cursor() as cursor:
+                    consulta = "DELETE FROM Usuarios WHERE id_usuario = ?"
+                    cursor.execute(consulta, (id_usuario,))
+                    conn.commit()
+                    return True
+            except pyodbc.Error as e:
+                print(f"Error CRUD Delete Usuario: {e}")
+            finally:
+                conn.close()
+        return False
+    
 if __name__ == "__main__":
     manager = DBManager()
     pcs_reales = manager.obtener_estaciones()

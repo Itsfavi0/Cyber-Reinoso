@@ -6,6 +6,7 @@ from datetime import datetime
 from modulos_ui.ventana_login import VentanaLogin
 from modulos_ui.panel_mapa import PanelMapa
 from modulos_ui.panel_usuario import PanelUsuario
+from modulos_ui.panel_administrador import PanelAdministrador
 
 BG_BASE = "#121212"
 
@@ -94,6 +95,11 @@ class AppCyberReinoso(tk.Tk):
         self.contenedor_principal = tk.Frame(self, bg=BG_BASE)
         self.contenedor_principal.pack(expand=True, fill="both", padx=10, pady=10)
         
+        # Inyectamos el Panel Administrador
+        self.admin_ui = PanelAdministrador(self.contenedor_principal, controlador=self, width=240)
+        self.admin_ui.pack(side="left", fill="y", padx=10, pady=10)
+        # self.admin_ui.pack_propagate(False) Mantiene el ancho fijo estético
+        
         # Inyectamos el Panel Mapa
         self.mapa_ui = PanelMapa(self.contenedor_principal, controlador=self)
         self.mapa_ui.pack(side="left", expand=True, fill="both", padx=20, pady=10)
@@ -119,6 +125,7 @@ class AppCyberReinoso(tk.Tk):
     def refrescar_interfaz(self):
         self.mapa_ui.dibujar_mapa_pcs()
         self.usuario_ui.dibujar_panel()
+        self.admin_ui.dibujar_panel()
 
     def iniciar_sesion(self, maquina_seleccionada):
         # Verificar si el usuario ya tiene otra sesión activa

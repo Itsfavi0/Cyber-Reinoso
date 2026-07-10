@@ -1,9 +1,8 @@
 import tkinter as tk
 import os
+from tkinter import ttk
 from PIL import Image, ImageTk
 
-# --- PALETA MODO OSCURO COHERENTE ---
-# ... (tus colores se mantienen igual)
 # --- PALETA MODO OSCURO COHERENTE ---
 BG_BASE = "#121212"
 BG_PANEL = "#1E1E1E"
@@ -20,11 +19,35 @@ class PanelMapa(tk.Frame):
         self.controlador = controlador # Referencia al main.py
         self.config(bg=BG_BASE)
         self.labels_cronometros = {}
+
+    # Canvas y barras de desplazamiento
+        self.canvas = tk.Canvas(self, bg=BG_BASE, highlightthickness=0)
+        self.scrollbar = ttk.Scrollbar(self, orient=tk.VERTICAL, command=self.canvas.yview)
+        
+        # Vincular el Canvas con el Scrollbar
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+        
+        # Empaquetar widgets
+        self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        # Contenedor INTERIOR (Donde se dibujarán las tarjetas)
+        self.frame_interior = tk.Frame(self.canvas, bg=BG_BASE)
+        self.canvas_frame_id = self.canvas.create_window((0, 0), window=self.frame_interior, anchor="nw")
+
+        # Eventos para redimensionar y calcular scroll
+        self.frame_interior.bind("<Configure>", lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
+        self.canvas.bind("<Configure>", lambda e: self.canvas.itemconfig(self.canvas_frame_id, width=e.width))
+
+        # Rueda del mouse (MouseWheel): Asegura el foco para que funcione bien
+        self.canvas.bind("<Enter>", lambda _: self.canvas.focus_set())
+        self.canvas.bind("<MouseWheel>", lambda e: self.canvas.yview_scroll(int(-1 * (e.delta / 120)), "units"))
+
         self.dibujar_mapa_pcs()
 
     def dibujar_mapa_pcs(self):
         # Limpiamos el frame por si se está refrescando
-        for widget in self.winfo_children():
+        for widget in self.frame_interior.winfo_children():
             widget.destroy()
 
         self.imagenes_referecia = [] # Lista para mantener referencias a las imágenes y evitar que se recojan por el GC
@@ -33,13 +56,13 @@ class PanelMapa(tk.Frame):
         
         # Configurar columnas para que se expandan proporcionalmente
         for col in range(columnas_maximas):
-            self.columnconfigure(col, weight=1)
+            self.frame_interior.columnconfigure(col, weight=1)
         
         # Agrupar por filas para configurar sus pesos también
         total_pcs = len(self.controlador.lista_pcs)
         total_filas = (total_pcs + columnas_maximas - 1) // columnas_maximas
         for fila_idx in range(total_filas):
-            self.rowconfigure(fila_idx, weight=1)
+            self.frame_interior.rowconfigure(fila_idx, weight=1)
 
         for index, pc in enumerate(self.controlador.lista_pcs):
             fila = index // columnas_maximas
@@ -78,7 +101,7 @@ class PanelMapa(tk.Frame):
                 
             # Frame de la PC individual (Tarjeta) con sticky="nsew" para tamaño homogéneo
             frame_pc = tk.Frame(
-                self, 
+                self.frame_interior, 
                 bg=BG_PANEL, 
                 highlightbackground=color_categoria, #Cambio de color del borde
                 highlightthickness=2, 
