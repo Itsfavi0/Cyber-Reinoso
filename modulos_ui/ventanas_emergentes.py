@@ -159,7 +159,7 @@ class VentanaRecarga(tk.Toplevel):
             
             self.usuario.recargar_saldo(monto)
                 
-            nuevo_saldo = self.usuario.saldo_billetera + monto
+            nuevo_saldo = self.usuario.saldo_billetera
             db = DBManager()
             db.actualizar_saldo_usuario(self.usuario.id_usuario, nuevo_saldo)
             
