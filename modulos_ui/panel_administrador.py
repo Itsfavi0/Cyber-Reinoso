@@ -141,22 +141,6 @@ class PanelAdministrador(tk.LabelFrame):
         self.btn_toggle_pc.bind("<Enter>", lambda e: self.btn_toggle_pc.config(bg="#0097A7"))
         self.btn_toggle_pc.bind("<Leave>", lambda e: self.btn_toggle_pc.config(bg="#00838F"))
 
-        # Botón para activar o desactivar usuario gamer
-        self.btn_toggle_user = tk.Button(
-            self, 
-            text="Activar / Desactivar Gamer", 
-            font=("Segoe UI", 9, "bold"), 
-            bg="#AD1457", # Magenta
-            fg="white", 
-            relief="flat", 
-            pady=6, 
-            cursor="hand2", 
-            command=self.ejecutar_toggle_usuario
-        )
-        self.btn_toggle_user.pack(fill=tk.X)
-        self.btn_toggle_user.bind("<Enter>", lambda e: self.btn_toggle_user.config(bg="#C2185B"))
-        self.btn_toggle_user.bind("<Leave>", lambda e: self.btn_toggle_user.config(bg="#AD1457"))
-
     def ejecutar_actualizacion_pc(self):
         """Captura los datos del formulario de hardware y gatilla el UPDATE parcial en la BD"""
         
@@ -203,25 +187,6 @@ class PanelAdministrador(tk.LabelFrame):
             db = DBManager()
             if db.alternar_estado_estacion(pc_codigo):
                 messagebox.showinfo("ITSM: Transición Exitoso", f"El estado de la {pc_codigo} ha sido alternado correctamente.", parent=self)
-                self.controlador.cargar_datos_iniciales()
-                self.controlador.refrescar_interfaz()
-
-    def ejecutar_toggle_usuario(self):
-        """Alterna el estado de una cuenta entre Activa e Inhabilitada"""
-        usuario = self.controlador.usuario_activo
-        if usuario.id_usuario == 1:
-            messagebox.showwarning("Acción denegada", "El usuario base por defecto (Invitado) debe permanecer siempre activo.", parent=self)
-            return
-
-        confirmar = messagebox.askyesno(
-            "Control de Cuenta", 
-            f"¿Desea alternar el estado de acceso para el gamer '{usuario.alias_gamer}'?\n\n• Si está activo, quedará inhabilitado.\n• Si estaba desactivado, volverá a estar disponible para alquileres.", 
-            parent=self
-        )
-        if confirmar:
-            db = DBManager()
-            if db.alternar_estado_usuario(usuario.id_usuario):
-                messagebox.showinfo("Éxito", f"El estado de la cuenta de '{usuario.alias_gamer}' fue alternado con éxito.", parent=self)
                 self.controlador.cargar_datos_iniciales()
                 self.controlador.refrescar_interfaz()
 
