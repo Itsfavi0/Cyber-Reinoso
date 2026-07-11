@@ -196,32 +196,62 @@ VALUES
 GO
 
 -- Hardware Físico
-INSERT INTO Computadoras (codigo_pc, procesador, tarjeta_grafica, monitor, mouse) 
+-- ZONA REGULAR (APUs y Equipos de Entrada - Sin cámara ni micrófono dedicado)
+INSERT INTO Computadoras (codigo_pc, procesador, tarjeta_grafica, monitor, teclado, mouse, microfono, camara) 
 VALUES 
-('PC-001', 'AMD Ryzen 5 8600G', 'Gráficos Integrados Radeon', 'MSI PRO MP243L E14 100Hz FHD', 'Genérico'),
-('PC-002', 'AMD Ryzen 5 8600G', 'Gráficos Integrados Radeon', 'MSI PRO MP243L E14 100Hz FHD', 'Genérico'),
-('PC-003', 'Intel Core i5', 'RTX 3060', 'ASUS TUF VG249Q5A 165Hz FHD', 'Ajazz AJ179 Apex'),
-('PC-004', 'Intel Core i7', 'RTX 4060 Ti', 'LG UltraGear 27G523B-B 200Hz FHD', 'Ajazz AJ179 Apex'),
-('PC-005', 'AMD Ryzen 9', 'RTX 4090', 'Samsung Odyssey OLED G8 250Hz 4K', 'Logitech G Pro Superlight')
+('PC-001', 'AMD Ryzen 5 8600G', 'Gráficos Integrados Radeon 760M', 'MSI PRO MP243L E14 100Hz FHD', 'Logitech K120 Membrana', 'Logitech M105', NULL, NULL),
+('PC-002', 'AMD Ryzen 5 8600G', 'Gráficos Integrados Radeon 760M', 'MSI PRO MP243L E14 100Hz FHD', 'Logitech K120 Membrana', 'Logitech M105', NULL, NULL),
+('PC-003', 'AMD Ryzen 5 8600G', 'Gráficos Integrados Radeon 760M', 'MSI PRO MP243L E14 100Hz FHD', 'Ajazz AK820 Mecánico Red', 'Ajazz AJ179 Apex', NULL, NULL),
+('PC-004', 'Intel Core i3-13100F', 'NVIDIA GTX 1650 4GB', 'MSI PRO MP243L E14 100Hz FHD', 'Ajazz AK820 Mecánico Red', 'Ajazz AJ179 Apex', NULL, NULL)
 GO
 
--- Asignación a los Módulos (FKs Categoría: 1 = Regular, 2 = eSports, 3 = Streaming VIP)
+-- ZONA eSPORTS (Altas Tasas de Refresco y Periféricos Competitivos)
+INSERT INTO Computadoras (codigo_pc, procesador, tarjeta_grafica, monitor, teclado, mouse, microfono, camara) 
+VALUES 
+('PC-005', 'Intel Core i5-13600KF', 'NVIDIA RTX 3060 12GB', 'ASUS TUF VG249Q5A 165Hz FHD', 'Cooler Master CK550 V2', 'Ajazz AJ179 Apex', 'Auriculares HyperX Cloud II (Integrado)', 'Logitech C920 HD'),
+('PC-006', 'Intel Core i5-13600KF', 'NVIDIA RTX 4060 8GB', 'ASUS TUF VG249Q5A 165Hz FHD', 'Cooler Master CK550 V2', 'Logitech G203 Lightsync', 'Auriculares HyperX Cloud II (Integrado)', 'Logitech C920 HD'),
+('PC-007', 'AMD Ryzen 5 7600X', 'NVIDIA RTX 4060 Ti 8GB', 'LG UltraGear 27G523B-B 200Hz FHD', 'Ajazz AK820 Pro 75%', 'Ajazz AJ179 Apex Pro', 'Auriculares Razer BlackShark V2', 'Logitech C920 HD'),
+('PC-008', 'AMD Ryzen 5 7600X', 'NVIDIA RTX 4060 Ti 8GB', 'LG UltraGear 27G523B-B 200Hz FHD', 'Ajazz AK820 Pro 75%', 'Logitech G Pro Hero Wired', 'Auriculares Razer BlackShark V2', 'Logitech C920 HD'),
+('PC-009', 'Intel Core i7-14700KF', 'NVIDIA RTX 4070 Super 12GB', 'LG UltraGear 27G523B-B 200Hz FHD', 'HyperX Alloy Origins Core', 'Logitech G Pro Wireless', 'HyperX SoloCast Condensador', 'Razer Kiyo Pro 60fps')
+GO
+
+-- ZONA STREAMING VIP (Setup Profesional, 4K, Audio de Estudio)
+INSERT INTO Computadoras (codigo_pc, procesador, tarjeta_grafica, monitor, teclado, mouse, microfono, camara) 
+VALUES 
+('PC-010', 'AMD Ryzen 7 7800X3D', 'NVIDIA RTX 4080 Super 16GB', 'Samsung Odyssey G7 240Hz 2K QHD', 'Wooting 60HE (Rapid Trigger)', 'Logitech G Pro X Superlight 2', 'HyperX QuadCast S RGB', 'Elgato Facecam MK.2 1080p60'),
+('PC-011', 'AMD Ryzen 9 7950X3D', 'NVIDIA RTX 4090 24GB', 'Samsung Odyssey OLED G8 250Hz 4K', 'Wooting 60HE (Rapid Trigger)', 'Razer Viper V3 Pro', 'Shure SM7B + Interfaz Focusrite', 'Elgato Facecam Pro 4K60'),
+('PC-012', 'Intel Core i9-14900KS', 'NVIDIA RTX 4090 24GB ROG Strix', 'Samsung Odyssey OLED G8 250Hz 4K', 'ASUS ROG Azoth 75% Wireless', 'Logitech G Pro X Superlight 2', 'Shure SM7B + Interfaz Focusrite', 'Sony ZV-E10 (Camlink 4K HDMI)')
+GO
+
+-- =========================================================
+-- ASIGNACIÓN A LOS MÓDULOS LÓGICOS (ESTACIONES)
+-- FKs Categoría: 1 = Regular (S/ 2.00), 2 = eSports (S/ 3.00), 3 = Streaming VIP (S/ 5.00)
+-- =========================================================
 INSERT INTO Estaciones (tipo_estacion, codigo_pc, id_categoria, estado_actual) 
 VALUES 
 ('Módulo 01', 'PC-001', 1, 'Disponible'),
-('Módulo 02', 'PC-002', 1, 'Ocupada'),
-('Módulo 03', 'PC-003', 2, 'Disponible'),
-('Módulo 04', 'PC-004', 2, 'Mantenimiento'),
-('Módulo 05', 'PC-005', 3, 'Disponible')
+('Módulo 02', 'PC-002', 1, 'Disponible'),
+('Módulo 03', 'PC-003', 1, 'Disponible'),
+('Módulo 04', 'PC-004', 1, 'Disponible'),
+('Módulo 05', 'PC-005', 2, 'Disponible'),
+('Módulo 06', 'PC-006', 2, 'Disponible'),
+('Módulo 07', 'PC-007', 2, 'Mantenimiento'),
+('Módulo 08', 'PC-008', 2, 'Disponible'),
+('Módulo 09', 'PC-009', 2, 'Disponible'),
+('Módulo 10', 'PC-010', 3, 'Disponible'),
+('Módulo 11', 'PC-011', 3, 'Mantenimiento'),
+('Módulo 12', 'PC-012', 3, 'Disponible');
 GO
 
 PRINT '¡Base de datos Cyber Reinoso desplegada con éxito!';
 
---USE master; -- Cambia el contexto fuera de la base de datos que vas a eliminar
+
+-- SCRIPT PARA BORRAR LA BASE DE DATOS
+--USE master
 --GO
 
 --ALTER DATABASE CyberReinoso SET SINGLE_USER WITH ROLLBACK IMMEDIATE; 
 --GO
 
---DROP DATABASE CyberReinoso; -- Elimina permanentemente la base de datos y sus archivos
+--DROP DATABASE CyberReinoso
 --GO

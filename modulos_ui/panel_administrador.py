@@ -37,6 +37,14 @@ class PanelAdministrador(tk.LabelFrame):
         tk.Label(self, text="Procesador:", font=("Segoe UI", 9), bg=BG_PANEL, fg=TEXTO_SECUNDARIO).pack(anchor="w")
         self.entry_cpu = tk.Entry(self, font=("Segoe UI", 10), bg="#2C2C2C", fg="white", relief="flat", bd=4)
         self.entry_cpu.pack(fill=tk.X, pady=(0, 8))
+        
+        tk.Label(self, text="Memoria Ram:", font=("Segoe UI", 9), bg=BG_PANEL, fg=TEXTO_SECUNDARIO).pack(anchor="w")
+        self.entry_ram = tk.Entry(self, font=("Segoe UI", 10), bg="#2C2C2C", fg="white", relief="flat", bd=4)
+        self.entry_ram.pack(fill=tk.X, pady=(0, 8))
+
+        tk.Label(self, text="GPU:", font=("Segoe UI", 9), bg=BG_PANEL, fg=TEXTO_SECUNDARIO).pack(anchor="w")
+        self.entry_gpu = tk.Entry(self, font=("Segoe UI", 10), bg="#2C2C2C", fg="white", relief="flat", bd=4)
+        self.entry_gpu.pack(fill=tk.X, pady=(0, 8))
 
         tk.Label(self, text="Monitor:", font=("Segoe UI", 9), bg=BG_PANEL, fg=TEXTO_SECUNDARIO).pack(anchor="w")
         self.entry_monitor = tk.Entry(self, font=("Segoe UI", 10), bg="#2C2C2C", fg="white", relief="flat", bd=4)
@@ -59,18 +67,23 @@ class PanelAdministrador(tk.LabelFrame):
     def ejecutar_actualizacion_pc(self):
         pc_codigo = self.combo_pcs.get()
         cpu = self.entry_cpu.get().strip()
-        mon = self.entry_monitor.get().strip()
+        ram = self.entry_ram.get().strip()
+        gpu = self.entry_gpu.get().strip()
+        monitor = self.entry_monitor.get().strip()
 
-        if not cpu and not mon:
+        if not cpu and not ram and not gpu and not monitor:
             messagebox.showwarning("Campos Vacíos", "Por favor rellene los nuevos componentes.", parent=self)
             return
 
         db = DBManager()
         # Creamos el método en conexion.py
-        if db.actualizar_hardware_pc(pc_codigo, cpu, mon):
+        if db.actualizar_hardware_pc(pc_codigo, cpu, monitor, ram, gpu):
             messagebox.showinfo("CRUD: Update", f"Componentes de {pc_codigo} actualizados con éxito.", parent=self)
             self.entry_cpu.delete(0, tk.END)
+            self.entry_ram.delete(0, tk.END)
+            self.entry_gpu.delete(0, tk.END)
             self.entry_monitor.delete(0, tk.END)
+            
             self.controlador.cargar_datos_iniciales()
             self.controlador.refrescar_interfaz()
 

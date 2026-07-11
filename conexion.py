@@ -43,7 +43,7 @@ class DBManager:
                     # Aplicamos el LEFT JOIN para las computadoras e INNER JOIN para las Estaciones con la categoria
                     consulta = """
                         SELECT e.id_estacion, e.codigo_pc, cat.nombre_categoria, e.estado_actual,
-                               c.procesador, c.tarjeta_grafica, c.monitor, c.mouse
+                               c.procesador, c.memoria_ram, c.tarjeta_grafica, c.monitor, c.mouse
                         FROM Estaciones e
                         INNER JOIN CategoriasEstacion cat ON e.id_categoria = cat.id_categoria
                         LEFT JOIN Computadoras c ON e.codigo_pc = c.codigo_pc
@@ -59,9 +59,10 @@ class DBManager:
                             "estado_actual" : fila[3],
                             "specs" : {
                                 "procesador" : fila[4],
-                                "tarjeta_grafica" : fila[5],
-                                "monitor" : fila[6],
-                                "mouse" : fila[7]
+                                "ram": fila[5],
+                                "tarjeta_grafica" : fila[6],
+                                "monitor" : fila[7],
+                                "mouse" : fila[8]
                             }
                         }
                         lista_estaciones.append(estacion)
@@ -442,7 +443,7 @@ class DBManager:
                 conn.close()
         return datos_empleado
     
-    def actualizar_hardware_pc(self, codigo_pc, procesador, monitor):
+    def actualizar_hardware_pc(self, codigo_pc, procesador, monitor, ram, gpu):
         """CRUD: Update - Modifica los componentes de una PC física"""
         conn = self.conectar()
         if conn:
@@ -455,6 +456,14 @@ class DBManager:
                     if procesador:
                         campos_set.append("procesador = ?")
                         valores.append(procesador)
+                    
+                    if ram:
+                        campos_set.append("memoria_ram = ?")
+                        valores.append(ram)
+                        
+                    if gpu:
+                        campos_set.append("tarjeta_grafica = ?")
+                        valores.append(gpu)
                     
                     if monitor:
                         campos_set.append("monitor = ?")

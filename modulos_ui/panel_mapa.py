@@ -156,8 +156,10 @@ class PanelMapa(tk.Frame):
                 specs_texto = "⚠️\nSin hardware asignado\nMesa inoperativa"
             elif hasattr(pc, 'especificaciones') and pc.especificaciones:
                 cpu = pc.especificaciones.get('procesador', 'No Disp.')
+                ram = pc.especificaciones.get("ram", "No Disp.")
+                gpu = pc.especificaciones.get("tarjeta_grafica", "No Disp.")
                 monitor = pc.especificaciones.get('monitor', 'No Disp.')
-                specs_texto = f"💻 {cpu}\n🖥️ {monitor}"
+                specs_texto = f"💻 {cpu}\n⚡ {ram}\n🎮 {gpu}\n🖥️ {monitor}"
             else:
                 specs_texto = "Sin Especificaciones"
                 
@@ -168,7 +170,7 @@ class PanelMapa(tk.Frame):
                 bg=BG_PANEL, 
                 fg=TEXTO_SECUNDARIO,
                 justify="center",
-                wraplength=170 
+                wraplength=175
             ).pack(pady=(2, 5))
             # -----------------------------------------------------------
             # Estado
