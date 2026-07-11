@@ -160,7 +160,7 @@ class DBManager:
             try:
                 with conn.cursor() as cursor:
                     cursor.execute(
-                        "SELECT id_usuario, alias_gamer FROM Usuarios WHERE estado = 1"
+                        "SELECT id_usuario, alias_gamer FROM Usuarios"
                     )
                     filas = cursor.fetchall()
                     
@@ -186,7 +186,7 @@ class DBManager:
                 with conn.cursor() as cursor:
                     # INNER JOIN TRADUCTOR: Transforma la FK 'id_rango' en la palabra real ('Bronce', 'Diamante')
                     consulta = """
-                        SELECT u.id_usuario, u.alias_gamer, r.nombre_rango, u.saldo_billetera, u.minutos_acumulados 
+                        SELECT u.id_usuario, u.alias_gamer, r.nombre_rango, u.saldo_billetera, u.minutos_acumulados, u.estado
                         FROM Usuarios u
                         INNER JOIN RangosCuenta r ON u.id_rango = r.id_rango 
                         WHERE u.id_usuario = ?
@@ -200,7 +200,8 @@ class DBManager:
                             "alias_gamer": fila[1],
                             "rango_cuenta": fila[2],
                             "saldo_billetera": float(fila[3]),
-                            "minutos_acumulados" : fila[4]
+                            "minutos_acumulados" : fila[4],
+                            "estado" : fila[5]
                         }
             except pyodbc.Error as e:
                 print(f"Error al leer el usuario: {e}")
@@ -536,52 +537,51 @@ class DBManager:
                 conn.close()
         return False
 
-    def eliminar_pc_fisica(self, codigo_pc):
+    def alternar_estado_estacion(self, codigo_pc):
         """
-        CRUD: Delete (Estaciones/Computadoras - IMPLEMENTADO COMO SOFT DELETE)
-        En lugar de purgar los registros físicos, desvincula el hardware, pone la estación 
-        en estado 'Hibernación' y la marca como inactiva (activa = 0) para proteger las FK de las Sesiones.
+        CRUD: Toggle de Estado
+        Utiliza la lógica CASE de SQL Server para alternar instantáneamente:
+        - Si está Activa (1) -> Pasa a Inactiva (0) y estado 'Mantenimiento'.
+        - Si está en Mantenimiento (0) -> Pasa a Activa (1) y estado 'Disponible'.
         """
         conn = self.conectar()
         if conn:
             try:
                 with conn.cursor() as cursor:
-                    # Paso 1: Desvinculamos el hardware, cambiamos su estado a Hibernación y aplicamos Soft Delete (activa = 0)
-                    consulta = """
+                    # CASE: Invierte los valores basándose en el estado actual en el disco duro
+                    consulta_toggle = """
                         UPDATE Estaciones 
-                        SET estado_actual = 'Mantenimiento',
-                            estado = 0 
+                        SET estado = CASE WHEN estado = 1 THEN 0 ELSE 1 END,
+                            estado_actual = CASE WHEN estado = 1 THEN 'Mantenimiento' ELSE 'Disponible' END
                         WHERE codigo_pc = ?
                     """
-                    cursor.execute(consulta, (codigo_pc,))
-                    
+                    cursor.execute(consulta_toggle, (codigo_pc,))
                     conn.commit()
-                    print(f"Soft Delete de Estación Exitoso: Hardware {codigo_pc} desvinculado y puesto en mantenimiento.")
+                    print(f"Estado operativo de {codigo_pc} alternado correctamente.")
                     return True
             except pyodbc.Error as e:
-                conn.rollback() # Si falla el paso 2, el paso 1 se revierte por completo
-                print(f"Error CRUD Delete PC: {e}")
+                conn.rollback()
+                print(f"Error CRUD Toggle PC/Estación: {e}")
             finally:
                 conn.close()
         return False
 
-    def eliminar_usuario_gamer(self, id_usuario):
+    def alternar_estado_usuario(self, id_usuario):
         """
-        CRUD: Delete (Implementado como BORRADO LÓGICO / SOFT DELETE)
-        En lugar de destruir físicamente la fila (y romper las llaves foráneas de Sesiones/Ventas),
-        cambia el estado de la columna 'estado' a 0 (False).
+        CRUD: Toggle de Estado de Cuenta Gamer
+        Alterna el bit 'estado' entre 0 y 1 utilizando lógica SQL CASE.
         """
         conn = self.conectar()
         if conn:
             try:
                 with conn.cursor() as cursor:
-                    # UPDATE que inabilita la cuenta sin tocar el historial contable
-                    consulta = "UPDATE Usuarios SET estado = 0 WHERE id_usuario = ?"
+                    consulta = "UPDATE Usuarios SET estado = CASE WHEN estado = 1 THEN 0 ELSE 1 END WHERE id_usuario = ?"
                     cursor.execute(consulta, (id_usuario,))
                     conn.commit()
+                    print(f"Toggle Exitoso: Cuenta de Usuario ID {id_usuario} alternada.")
                     return True
             except pyodbc.Error as e:
-                print(f"Error CRUD Delete Usuario: {e}")
+                print(f"Error CRUD Toggle Usuario: {e}")
             finally:
                 conn.close()
         return False

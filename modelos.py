@@ -18,7 +18,7 @@ class SaldoInsuficienteError(Exception):
 # ENTIDAD: USUARIO (Gamer y Fidelización)
 # =========================================================================
 class Usuario:
-    def __init__(self, id_usuario, alias_gamer, rango_cuenta, saldo_billetera, minutos_acumulados=0):
+    def __init__(self, id_usuario, alias_gamer, rango_cuenta, saldo_billetera, minutos_acumulados=0, estado = 1):
         # 'self' hace referencia al objeto específico que se está creando en memoria.
         self.id_usuario = id_usuario
         self.alias_gamer = alias_gamer
@@ -30,6 +30,7 @@ class Usuario:
         # El doble guion bajo '__' convierte la variable en PRIVADA.
         self.__saldo_billetera = float(saldo_billetera)
         self.minutos_acumulados = int(minutos_acumulados)
+        self.estado = int(estado)
 
         #Cada vez que Python reconstruye al usuario, evalúa instantáneamente su nivel.
         self.rango_cuenta = self.evaluar_rango_por_minutos()

@@ -91,7 +91,9 @@ class AppCyberReinoso(tk.Tk):
                             alias_gamer=datos_usr["alias_gamer"],
                             rango_cuenta=datos_usr["rango_cuenta"],
                             saldo_billetera=datos_usr["saldo_billetera"],
-                            minutos_acumulados=datos_usr.get("minutos_acumulados", 0))
+                            minutos_acumulados=datos_usr.get("minutos_acumulados", 0),
+                            estado=datos_usr.get("activo", 1)
+        )
         
         # 3. RECUPERACIÓN ANTI-APAGONES (Fault Tolerance):
         # Reconstruye en RAM las sesiones que quedaron abiertas (hora_fin = NULL) antes de una caída del sistema.
@@ -145,7 +147,8 @@ class AppCyberReinoso(tk.Tk):
             alias_gamer=datos_usr["alias_gamer"], 
             rango_cuenta=datos_usr["rango_cuenta"], 
             saldo_billetera=datos_usr["saldo_billetera"],
-            minutos_acumulados=datos_usr.get("minutos_acumulados", 0)
+            minutos_acumulados=datos_usr.get("minutos_acumulados", 0),
+            estado=datos_usr["estado"]
         )
         self.refrescar_interfaz()
         

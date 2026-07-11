@@ -83,6 +83,17 @@ class PanelUsuario(tk.LabelFrame):
         
         tk.Label(self, text=usuario.rango_cuenta, font=("Segoe UI", 14, "bold"), bg=BG_PANEL, fg=color_rango).pack(anchor="w", pady=(0, 15))
         
+        tk.Label(self, text="Estado del Gamer:", font=("Segoe UI", 9, "bold"), bg=BG_PANEL, fg=TEXTO_SECUNDARIO).pack(anchor="w")
+        
+        if usuario.estado == 1:
+            texto_estado = "CUENTA ACTIVA"
+            color_estado = "#00E676"  # Verde neón brillante
+        else:
+            texto_estado = "INHABILITADA / SUSPENDIDA"
+            color_estado = "#FF1744"  # Rojo de alerta
+            
+        tk.Label(self, text=texto_estado, font=("Segoe UI", 11, "bold"), bg=BG_PANEL, fg=color_estado).pack(anchor="w", pady=(0, 15))
+        
         tk.Label(self, text="Saldo Disponible:", font=("Segoe UI", 9, "bold"), bg=BG_PANEL, fg=TEXTO_SECUNDARIO).pack(anchor="w")
         # ':.2f' formatea el float de la billetera a dos decimales exactos en la pantalla para una lectura contable clara.
         tk.Label(self, text=f"S/ {usuario.saldo_billetera:.2f}", font=("Segoe UI", 18, "bold"), bg=BG_PANEL, fg=COLOR_DISPONIBLE).pack(anchor="w", pady=(0, 20))

@@ -125,37 +125,37 @@ class PanelAdministrador(tk.LabelFrame):
         # =========================================================================
         tk.Label(self, text="🛠️ Gestión de Estado y Soporte:", font=("Segoe UI", 10, "bold"), bg=BG_PANEL, fg=TEXTO_MAIN).pack(anchor="w", pady=(10, 5))
 
-        # Botón para retirar máquina a mantenimiento
-        self.btn_del_pc = tk.Button(
+        # Botón para enviar a mantenimiento o recuperar maquina
+        self.btn_toggle_pc = tk.Button(
             self, 
-            text="🛠️ Enviar a Mantenimiento", 
+            text="Cambiar Estado PC (Mantenimiento/Disponible)", 
             font=("Segoe UI", 9, "bold"), 
-            bg="#D84315", # Naranja quemado
+            bg="#00838F", # Cyan
             fg="white", 
             relief="flat", 
             pady=6, 
             cursor="hand2", 
-            command=self.ejecutar_retirar_pc
+            command=self.ejecutar_toggle_pc
         )
-        self.btn_del_pc.pack(fill=tk.X, pady=(0, 10))
-        self.btn_del_pc.bind("<Enter>", lambda e: self.btn_del_pc.config(bg="#E65100"))
-        self.btn_del_pc.bind("<Leave>", lambda e: self.btn_del_pc.config(bg="#D84315"))
+        self.btn_toggle_pc.pack(fill=tk.X, pady=(0, 10))
+        self.btn_toggle_pc.bind("<Enter>", lambda e: self.btn_toggle_pc.config(bg="#0097A7"))
+        self.btn_toggle_pc.bind("<Leave>", lambda e: self.btn_toggle_pc.config(bg="#00838F"))
 
-        # Botón para inhabilitar usuario gamer
-        self.btn_del_user = tk.Button(
+        # Botón para activar o desactivar usuario gamer
+        self.btn_toggle_user = tk.Button(
             self, 
-            text="🚫 Desactivar Cuenta Gamer", 
+            text="Activar / Desactivar Gamer", 
             font=("Segoe UI", 9, "bold"), 
-            bg="#C62828", # Rojo oscuro de inhabilitación
+            bg="#AD1457", # Magenta
             fg="white", 
             relief="flat", 
             pady=6, 
             cursor="hand2", 
-            command=self.ejecutar_desactivar_usuario
+            command=self.ejecutar_toggle_usuario
         )
-        self.btn_del_user.pack(fill=tk.X)
-        self.btn_del_user.bind("<Enter>", lambda e: self.btn_del_user.config(bg="#E53935"))
-        self.btn_del_user.bind("<Leave>", lambda e: self.btn_del_user.config(bg="#C62828"))
+        self.btn_toggle_user.pack(fill=tk.X)
+        self.btn_toggle_user.bind("<Enter>", lambda e: self.btn_toggle_user.config(bg="#C2185B"))
+        self.btn_toggle_user.bind("<Leave>", lambda e: self.btn_toggle_user.config(bg="#AD1457"))
 
     def ejecutar_actualizacion_pc(self):
         """Captura los datos del formulario de hardware y gatilla el UPDATE parcial en la BD"""
@@ -189,39 +189,39 @@ class PanelAdministrador(tk.LabelFrame):
             self.controlador.cargar_datos_iniciales()
             self.controlador.refrescar_interfaz()
 
-    def ejecutar_retirar_pc(self):
-        """Transición de estado: Retira una PC operativa hacia el taller de soporte técnico (Soft Delete)"""
+    def ejecutar_toggle_pc(self):
+        """Alterna una estación entre 'Mantenimiento' (Inactiva) y 'Disponible' (Activa)"""
         pc_codigo = self.combo_pcs.get()
         if not pc_codigo: return
 
         confirmar = messagebox.askyesno(
-            "Soporte Técnico", 
-            f"¿Está seguro de pasar la {pc_codigo} a estado de MANTENIMIENTO?\n\nLa estación quedará deshabilitada en el mapa para alquiler, pero el hardware se conservará vinculado para su futura reactivación.", 
+            "Gestión de Infraestructura", 
+            f"¿Desea cambiar el estado operativo de la {pc_codigo}?\n\n• Si está operativa, pasará a MANTENIMIENTO.\n• Si está en soporte, se REACTIVARÁ en el mapa.", 
             parent=self
         )
         if confirmar:
             db = DBManager()
-            if db.eliminar_pc_fisica(pc_codigo):
-                messagebox.showinfo("Soporte Técnico", f"Máquina {pc_codigo} enviada a mantenimiento correctamente.", parent=self)
+            if db.alternar_estado_estacion(pc_codigo):
+                messagebox.showinfo("ITSM: Transición Exitoso", f"El estado de la {pc_codigo} ha sido alternado correctamente.", parent=self)
                 self.controlador.cargar_datos_iniciales()
                 self.controlador.refrescar_interfaz()
 
-    def ejecutar_desactivar_usuario(self):
-        """Transición de estado: Inhabilita la cuenta de un gamer sin alterar su historial contable"""
+    def ejecutar_toggle_usuario(self):
+        """Alterna el estado de una cuenta entre Activa e Inhabilitada"""
         usuario = self.controlador.usuario_activo
         if usuario.id_usuario == 1:
-            messagebox.showwarning("Acción denegada", "No puedes desactivar al usuario base (Invitado) por defecto del sistema.", parent=self)
+            messagebox.showwarning("Acción denegada", "El usuario base por defecto (Invitado) debe permanecer siempre activo.", parent=self)
             return
 
         confirmar = messagebox.askyesno(
-            "Desactivar Cuenta", 
-            f"¿Está seguro de inhabilitar la cuenta del gamer '{usuario.alias_gamer}'?\n\nEl usuario ya no aparecerá en el selector de clientes, pero sus transacciones y tickets de compra antiguos se conservarán intactos en la auditoría contable.", 
+            "Control de Cuenta", 
+            f"¿Desea alternar el estado de acceso para el gamer '{usuario.alias_gamer}'?\n\n• Si está activo, quedará inhabilitado.\n• Si estaba desactivado, volverá a estar disponible para alquileres.", 
             parent=self
         )
         if confirmar:
             db = DBManager()
-            if db.eliminar_usuario_gamer(usuario.id_usuario):
-                messagebox.showinfo("Éxito", f"La cuenta de '{usuario.alias_gamer}' ha sido desactivada del sistema.", parent=self)
+            if db.alternar_estado_usuario(usuario.id_usuario):
+                messagebox.showinfo("Éxito", f"El estado de la cuenta de '{usuario.alias_gamer}' fue alternado con éxito.", parent=self)
                 self.controlador.cargar_datos_iniciales()
                 self.controlador.refrescar_interfaz()
 
