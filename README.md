@@ -76,17 +76,17 @@ Para ejecutar este proyecto en tu máquina local, necesitas:
 
 3. Configurar la Base de Datos:
 
- Abre SSMS y ejecuta el script `estructura_db.sql`
- Verifica que la cadena de conexión en conexion.py coincida con tu instancia local:
- 
- ```text
- self.connection_string = (
-     "Driver={ODBC Driver 17 for SQL Server};"
-     "Server=localhost;"
-     "Database=CyberReinoso;"
-     "Trusted_Connection=yes;"
- )
- ```
+  Abre SSMS y ejecuta el script `estructura_db.sql`
+  Verifica que la cadena de conexión en conexion.py coincida con tu instancia local:
+  
+  ```text
+  self.connection_string = (
+      "Driver={ODBC Driver 17 for SQL Server};"
+      "Server=localhost;"
+      "Database=CyberReinoso;"
+      "Trusted_Connection=yes;"
+  )
+  ```
 4. Ejecutar el sistema:
     ```bash
     python main.py
