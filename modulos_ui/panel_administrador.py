@@ -1,3 +1,10 @@
+"""
+CAPA DE PRESENTACIÓN / INTERFAZ GRÁFICA (UI)
+MÓDULO INTERNO: PANEL ADMINISTRADOR (ITSM / CRUD CONTROLLER)
+Este componente visual hereda de tk.LabelFrame para encapsular de manera aislada las herramientas 
+de mantenimiento físico de hardware y depuración de registros en la base de datos de SQL Server.
+"""
+
 import tkinter as tk
 from tkinter import ttk, messagebox
 from conexion import DBManager
@@ -10,30 +17,48 @@ COLOR_ELIMINAR = "#D32F2F"
 
 class PanelAdministrador(tk.LabelFrame):
     def __init__(self, parent, controlador, *args, **kwargs):
+        """
+        CONSTRUCTOR DEL PANEL: Enlaza el contenedor padre y guarda el controlador principal.
+        - *args y **kwargs: Permiten recibir cualquier parámetro extra de Tkinter (como width, height o padding)
+          y pasárselos de manera flexible al constructor padre de la interfaz sin romper el código.
+        """
         super().__init__(parent, text="Módulo Administrador", font=("Segoe UI", 12, "bold"), bg=BG_PANEL, fg=TEXTO_MAIN, padx=15, pady=15, *args, **kwargs)
-        self.controlador = controlador
+        self.controlador = controlador # Referencia al Mediador central (main.py)
         self.dibujar_panel()
 
     def dibujar_panel(self):
+        """
+        ALGORITMO DE RECONSTRUCCIÓN GRÁFICA:
+        Recorre todos los widgets hijos que existan dentro del panel y los destruye uno por uno.
+        Esto limpia por completo la memoria RAM gráfica de Windows antes de volver a dibujar las cajas,
+        evitando fugas de memoria o duplicados visuales al refrescar.
+        """
+        # NOTA BÁSICA: self.winfo_children() devuelve una lista con todas las cajas, etiquetas y botones internos actuales.
         for widget in self.winfo_children():
             widget.destroy()
 
         db = DBManager()
 
-        # ==========================================
-        # SECCIÓN U: ACTUALIZAR COMPONENTES PC
-        # ==========================================
+        # =========================================================================
+        # SECCIÓN U (UPDATE): ACTUALIZAR COMPONENTES DE COMPUTADORAS
+        # =========================================================================
         tk.Label(self, text="⚙️ Actualizar Hardware:", font=("Segoe UI", 10, "bold"), bg=BG_PANEL, fg=TEXTO_MAIN).pack(anchor="w", pady=(0, 5))
         
-        # Selector de PC a modificar
+        # COMPRENSIÓN DE LISTAS (List Comprehension):
+        # Filtra de manera hiper-eficiente la lista global de objetos en memoria RAM, extrayendo los códigos
+        # de las computadoras válidas y saltándose aquellas mesas vacías o sin hardware asociado ("None").
         pcs_validas = [pc.codigo_pc for pc in self.controlador.lista_pcs if pc.codigo_pc and pc.codigo_pc != "None"]
+        
+        # Selector desplegable de máquinas
+        # state="readonly" bloquea el Combobox para que el cajero no pueda escribir textos raros con el teclado.
         self.combo_pcs = ttk.Combobox(self, values=pcs_validas, state="readonly", font=("Segoe UI", 10))
         self.combo_pcs.pack(fill=tk.X, pady=(0, 10))
         
+        # LÓGICA DEFENSIVA: Si existen computadoras registradas, selecciona por defecto el primer elemento del Combobox.
         if pcs_validas:
             self.combo_pcs.current(0)
 
-        # Campos de texto de componentes
+        # Creación secuencial de las cajas de texto (Entries) para los 4 componentes críticos del Lan Center
         tk.Label(self, text="Procesador:", font=("Segoe UI", 9), bg=BG_PANEL, fg=TEXTO_SECUNDARIO).pack(anchor="w")
         self.entry_cpu = tk.Entry(self, font=("Segoe UI", 10), bg="#2C2C2C", fg="white", relief="flat", bd=4)
         self.entry_cpu.pack(fill=tk.X, pady=(0, 8))
@@ -50,12 +75,14 @@ class PanelAdministrador(tk.LabelFrame):
         self.entry_monitor = tk.Entry(self, font=("Segoe UI", 10), bg="#2C2C2C", fg="white", relief="flat", bd=4)
         self.entry_monitor.pack(fill=tk.X, pady=(0, 15))
 
+        # Botón de envío que conecta la UI con el evento de actualización
+        # cursor="hand2" cambia la flecha del mouse a una manito para mejorar la experiencia de usuario (UX).
         self.btn_update = tk.Button(self, text="Actualizar Hardware", font=("Segoe UI", 10, "bold"), bg="#1976D2", fg="white", relief="flat", pady=5, cursor="hand2", command=self.ejecutar_actualizacion_pc)
         self.btn_update.pack(fill=tk.X, pady=(0, 20))
 
-        # ==========================================
-        # SECCIÓN D: ELIMINAR REGISTROS
-        # ==========================================
+        # =========================================================================
+        # SECCIÓN D (DELETE): ZONA DE ELIMINACIÓN DE REGISTROS
+        # =========================================================================
         tk.Label(self, text="🗑️ Zona de Eliminación:", font=("Segoe UI", 10, "bold"), bg=BG_PANEL, fg=TEXTO_MAIN).pack(anchor="w", pady=(0, 5))
 
         self.btn_del_pc = tk.Button(self, text="❌ Eliminar PC Seleccionada", font=("Segoe UI", 9, "bold"), bg=COLOR_ELIMINAR, fg="white", relief="flat", pady=6, cursor="hand2", command=self.ejecutar_eliminar_pc)
@@ -65,42 +92,60 @@ class PanelAdministrador(tk.LabelFrame):
         self.btn_del_user.pack(fill=tk.X)
 
     def ejecutar_actualizacion_pc(self):
+        """Captura los datos del formulario de hardware y gatilla el UPDATE parcial en la BD"""
+        
+        # .get().strip() extrae el texto escrito por el administrador y borra los espacios en blanco 
+        # accidentales que haya puesto al inicio o al final, limpiando la cadena antes de que viaje a SQL.
         pc_codigo = self.combo_pcs.get()
         cpu = self.entry_cpu.get().strip()
         ram = self.entry_ram.get().strip()
         gpu = self.entry_gpu.get().strip()
         monitor = self.entry_monitor.get().strip()
 
+        # CONTROL DE ENTRADA: Si el administrador no escribió nada en ninguna de las 4 cajas, 
+        # frena el proceso mediante una advertencia flotante, evitando enviar una consulta vacía.
         if not cpu and not ram and not gpu and not monitor:
             messagebox.showwarning("Campos Vacíos", "Por favor rellene los nuevos componentes.", parent=self)
             return
 
         db = DBManager()
-        # Creamos el método en conexion.py
+        # Invocamos el método dinámico del DAO pasándole las variables capturadas de la UI
         if db.actualizar_hardware_pc(pc_codigo, cpu, monitor, ram, gpu):
             messagebox.showinfo("CRUD: Update", f"Componentes de {pc_codigo} actualizados con éxito.", parent=self)
+            # .delete(0, tk.END) vacía por completo el contenido de la caja de texto 
+            # desde la posición cero hasta el final, dejándola limpia para la siguiente operación.
             self.entry_cpu.delete(0, tk.END)
             self.entry_ram.delete(0, tk.END)
             self.entry_gpu.delete(0, tk.END)
             self.entry_monitor.delete(0, tk.END)
             
+            # FLUJO COMPLETO: Obligamos al orquestador a recargar los objetos de SQL y redibujar el mapa de inmediato
             self.controlador.cargar_datos_iniciales()
             self.controlador.refrescar_interfaz()
 
     def ejecutar_eliminar_pc(self):
+        """Gatilla el borrado físico de un hardware del Lan Center"""
         pc_codigo = self.combo_pcs.get()
         if not pc_codigo: return
 
+        # INTERFAZ CONFIRMATIVA: Abre un modal de doble check (Sí/No) para prevenir clics accidentales del cajero.
         confirmar = messagebox.askyesno("CRUD: Delete", f"¿Está seguro de eliminar por completo la {pc_codigo}?\nEsto borrará su estación lógica.", parent=self)
         if confirmar:
             db = DBManager()
             if db.eliminar_pc_fisica(pc_codigo):
                 messagebox.showinfo("Éxito", f"Máquina {pc_codigo} eliminada del sistema.", parent=self)
+                # Refrescamos el ecosistema para que en el panel central esa mesa pase a decir "MÓDULO VACÍO"
                 self.controlador.cargar_datos_iniciales()
                 self.controlador.refrescar_interfaz()
 
     def ejecutar_eliminar_usuario(self):
+        """Gatilla el borrado físico de la cuenta del gamer activo seleccionado en la UI"""
         usuario = self.controlador.usuario_activo
+        
+        # REGLA DE NEGOCIO CRÍTICA (PROTECCIÓN DE INTEGRIDAD OPERATIVA):
+        # El usuario con ID 1 es el 'Invitado General' que usa el sistema por defecto al iniciar. 
+        # Si un administrador lo borrara de la base de datos, el software lanzaría un IndexError y se caería
+        # al arrancar en main.py. Por lo tanto, blindamos este registro bloqueando su eliminación.
         if usuario.id_usuario == 1:
             messagebox.showwarning("Acción denegada", "No puedes eliminar al usuario base por defecto del sistema.", parent=self)
             return
@@ -110,6 +155,8 @@ class PanelAdministrador(tk.LabelFrame):
             db = DBManager()
             if db.eliminar_usuario_gamer(usuario.id_usuario):
                 messagebox.showinfo("Éxito", f"Usuario {usuario.alias_gamer} eliminado correctamente.", parent=self)
+                
+                # Al eliminarse el usuario activo, regresamos el control al usuario por defecto cargando la data de nuevo
                 self.controlador.cargar_datos_iniciales()
                 self.controlador.refrescar_interfaz()
 

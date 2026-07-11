@@ -1,63 +1,99 @@
+"""
+CAPA DE PRESENTACIÓN / INTERFAZ GRÁFICA (UI)
+MÓDULO DE ATENCIÓN: PANEL USUARIO (CLIENT CRM & CONTROLLER PANEL)
+Este componente visual hereda de tk.LabelFrame para aislar perimetralmente el perfil del gamer activo.
+Actúa como la pasarela de control financiero del cajero, permitiendo orquestar recargas, compras en tienda,
+inscripción de nuevos usuarios y visualización de auditorías de caja diaria.
+"""
+
 import tkinter as tk
 from tkinter import ttk
 from conexion import DBManager
 from modulos_ui.ventanas_emergentes import VentanaRegistro, VentanaRecarga, VentanaReporteCaja
 from modulos_ui.panel_kiosco import VentanaTienda
 
-# --- PALETA MODO OSCURO ---
+# --- PALETA MODO OSCURO COHERENTE ---
 BG_PANEL = "#1E1E1E"
 TEXTO_MAIN = "#FFFFFF"
 TEXTO_SECUNDARIO = "#A0A0A0"
-COLOR_DISPONIBLE = "#00E676"
+COLOR_DISPONIBLE = "#00E676" # Verde para indicar saldo positivo disponible
 
 class PanelUsuario(tk.LabelFrame):
     def __init__(self, parent, controlador, *args, **kwargs):
+        """
+        CONSTRUCTOR DEL PANEL: Enlaza el marco contenedor y el mediador central.
+        """
         super().__init__(parent, text="Módulo del Cliente", font=("Segoe UI", 12, "bold"), bg=BG_PANEL, fg=TEXTO_MAIN, padx=20, pady=20, *args, **kwargs)
-        self.controlador = controlador
+        self.controlador = controlador # Referencia al main.py (Orquestador)
         self.dibujar_panel()
 
     def dibujar_panel(self):
+        """
+        ALGORITMO DE REFRESCO DINÁMICO DE PERFIL:
+        Barre todos los elementos visuales antiguos para reconstruir la tarjeta con los 
+        datos frescos del objeto Gamer activo guardado en el orquestador principal.
+        """
         for widget in self.winfo_children():
             widget.destroy()
         
+        # Recuperamos el objeto Usuario puro que está seleccionado actualmente en la RAM
         usuario = self.controlador.usuario_activo
         
+        # ---------------------------------------------------------------------
+        # SECCIÓN DE SELECCIÓN (CRM SELECTOR)
+        # ---------------------------------------------------------------------
         frame_seleccion = tk.Frame(self, bg=BG_PANEL)
         frame_seleccion.pack(fill=tk.X, pady=(0,15))
         
         tk.Label(frame_seleccion, text="Seleccionar Cliente:", font=("Segoe UI", 10, "bold"), bg=BG_PANEL, fg=TEXTO_MAIN).pack(anchor="w")
         
+        # Conexión rápida al DAO para listar los clientes registrados en SQL Server
         db = DBManager()
         todos_los_usuarios = db.obtener_todos_los_usuarios()
         
+        # COMPRENSIÓN DE LISTAS: Formatea las tuplas de SQL a cadenas legibles ("1 - Maximus_27") para el Combobox
         lista_nombres = [f"{u['id_usuario']} - {u['alias_gamer']}" for u in todos_los_usuarios]
         self.combo_usuarios = ttk.Combobox(frame_seleccion, values=lista_nombres, state="readonly", font=("Segoe UI", 11))
         self.combo_usuarios.pack(fill=tk.X, pady=5)
-        self.combo_usuarios.set(f"{usuario.id_usuario} - {usuario.alias_gamer}") 
+        self.combo_usuarios.set(f"{usuario.id_usuario} - {usuario.alias_gamer}") # Pinta el usuario activo actual
         
+        # Captura el evento virtual <<ComboboxSelected>> (cambio de opción con el mouse)
+        # y delega la reconstrucción del usuario al orquestador central (main.py) de forma asíncrona.
         self.combo_usuarios.bind("<<ComboboxSelected>>", self.controlador.cambiar_usuario_activo)
         
+        # ---------------------------------------------------------------------
+        # SECCIÓN DE RENDERIZADO DE PERFIL Y FIDELIZACIÓN (GAMER CARD)
+        # ---------------------------------------------------------------------
         tk.Label(self, text="Gamer:", font=("Segoe UI", 9, "bold"), bg=BG_PANEL, fg=TEXTO_SECUNDARIO).pack(anchor="w")
         tk.Label(self, text=usuario.alias_gamer, font=("Segoe UI", 14, "bold"), bg=BG_PANEL, fg=TEXTO_MAIN).pack(anchor="w", pady=(0, 15))
         
         tk.Label(self, text="Rango:", font=("Segoe UI", 9, "bold"), bg=BG_PANEL, fg=TEXTO_SECUNDARIO).pack(anchor="w")
         
+        # MAPEO CROMÁTICO:
+        # Utiliza una estructura asociativa (Diccionario) para pintar la etiqueta del rango con su color oficial de marca.
+        # Mejora la UX permitiendo diferenciar los niveles VIP a un solo golpe de vista del cajero.
         colores_rango = {
-            "Bronce": "#CD7F32",     # Color cobre/bronce
+            "Bronce": "#CD7F32",     # Color cobre/bronce tradicional
             "Plata": "#E0E0E0",      # Gris plateado brillante
-            "Oro": "#FFD700",        # Dorado intenso
-            "Diamante": "#01FFFF"    # Morado neón (Premium)
+            "Oro": "#FFD700",        # Dorado metálico intenso
+            "Diamante": "#01FFFF"    # Celeste/Cyan Neón de alta fidelidad (Catálogo actualizado)
         }
+        # N.get() busca la llave en el diccionario. Si el rango es corrupto o no existe, usa TEXTO_MAIN por defecto.
         color_rango = colores_rango.get(usuario.rango_cuenta, TEXTO_MAIN)
         
         tk.Label(self, text=usuario.rango_cuenta, font=("Segoe UI", 14, "bold"), bg=BG_PANEL, fg=color_rango).pack(anchor="w", pady=(0, 15))
         
         tk.Label(self, text="Saldo Disponible:", font=("Segoe UI", 9, "bold"), bg=BG_PANEL, fg=TEXTO_SECUNDARIO).pack(anchor="w")
+        # ':.2f' formatea el float de la billetera a dos decimales exactos en la pantalla para una lectura contable clara.
         tk.Label(self, text=f"S/ {usuario.saldo_billetera:.2f}", font=("Segoe UI", 18, "bold"), bg=BG_PANEL, fg=COLOR_DISPONIBLE).pack(anchor="w", pady=(0, 20))
         
-        # --- BOTONES MODERNOS CON HOVER ---
+        # ---------------------------------------------------------------------
+        # CONTROLADORES MODALES DE FLUJO OPERATIVO
+        # ---------------------------------------------------------------------
         
-        # Botón 1: Recargar Billetera
+        # --- Botón 1: Recargar Billetera ---
+        # Usamos una función anónima (lambda) en el parámetro command para instanciar la clase VentanaRecarga
+        # al vuelo únicamente cuando el cajero presiona el botón, evitando que el modal se dispare solo al arrancar la app.
         self.btn_recargar = tk.Button(
             self, 
             text="Recargar Billetera", 
@@ -72,10 +108,12 @@ class PanelUsuario(tk.LabelFrame):
             command=lambda: VentanaRecarga(self.controlador, self.controlador.usuario_activo, callback_actualizar=self.controlador.refrescar_interfaz)
         )
         self.btn_recargar.pack(fill=tk.X, pady=(0, 15))
+        # ANIMACIÓN HOVER: Enlaza eventos nativos del cursor del mouse para crear dinamismo visual
         self.btn_recargar.bind("<Enter>", lambda e: self.btn_recargar.config(bg="#388E3C"))
         self.btn_recargar.bind("<Leave>", lambda e: self.btn_recargar.config(bg="#2E7D32"))
         
-        # Botón 2: Abrir Tienda / Snacks
+        # --- Botón 2: Abrir Tienda / Snacks ---
+        # Dispara el Punto de Venta (POS) transaccional pasándole la función refrescar_interfaz como callback.
         self.btn_tienda = tk.Button(
             self, 
             text="🛒 Abrir Tienda / Snacks", 
@@ -93,7 +131,7 @@ class PanelUsuario(tk.LabelFrame):
         self.btn_tienda.bind("<Enter>", lambda e: self.btn_tienda.config(bg="#1E88E5"))
         self.btn_tienda.bind("<Leave>", lambda e: self.btn_tienda.config(bg="#1565C0"))
         
-        # Botón 3: Registrar nuevo Usuario
+        # --- Botón 3: Registrar nuevo Usuario ---
         self.btn_registro = tk.Button(
             self, 
             text="➕ Registrar nuevo Usuario", 
@@ -111,7 +149,7 @@ class PanelUsuario(tk.LabelFrame):
         self.btn_registro.bind("<Enter>", lambda e: self.btn_registro.config(bg="#8E24AA"))
         self.btn_registro.bind("<Leave>", lambda e: self.btn_registro.config(bg="#6A1B9A"))
         
-        # Botón 4: Reporte de Caja
+        # --- Botón 4: Reporte de Caja ---
         self.btn_reporte = tk.Button(
             self, 
             text="📊 Reporte de Caja (Hoy)", 

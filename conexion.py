@@ -1,7 +1,19 @@
+"""
+CAPA DE ACCESO A DATOS (PATRÓN DAO - DATA ACCESS OBJECT)
+Este archivo centraliza, encapsula y abstrae todas las interacciones con Microsoft SQL Server.
+Ninguna pantalla o lógica de interfaz puede lanzar SQL directamente; todo debe pasar por esta clase
+para garantizar seguridad contra inyecciones y modularidad del código.
+"""
+
 import pyodbc
 
 class DBManager:
     def __init__(self):
+        """
+        CONSTRUCTOR DE CONEXIÓN: Define los parámetros técnicos para enlazar la app con la BD.
+        - Driver: El traductor intermedio de Windows para conectarse a SQL Server.
+        - Trusted_Connection=yes: Utiliza Autenticación de Windows (Sin necesidad de exponer contraseñas en texto plano).
+        """
         self.connection_string = (
             "Driver={ODBC Driver 17 for SQL Server};"
             "Server=localhost;"
@@ -10,19 +22,23 @@ class DBManager:
         )
         
     def conectar(self):
-        """Intenta abrir una conexion con la base de datos"""
+        """Intenta abrir una conexión física con el motor de base de datos"""
         try:
+            # pyodbc.connect abre el canal de comunicación en red local/mecanismo nativo.
             conexion = pyodbc.connect(self.connection_string)
             return conexion
         except pyodbc.Error as e:
+            # Captura cualquier caída del servicio SQL Server para que la app no tire un pantallazo azul.
             print(f"ERROR DE CONEXIÓN: No se pudo conectar a SQL Server. Detalles: {e}")
             return None
     
     def probar_conexion(self):
-        """Método de diagnóstico para verificar que las tuberías funcionan"""
+        """Método de diagnóstico para verificar que las tuberías de red funcionan"""
         conn = self.conectar()
         if conn:
             try:
+                # El Context Manager 'with' asegura que el Cursor (el puntero de SQL)
+                # se destruya y libere de la memoria RAM automáticamente al terminar el bloque, evitando fugas de memoria.
                 with conn.cursor() as cursor:
                     cursor.execute("SELECT @@VERSION")
                     row = cursor.fetchone()
@@ -31,16 +47,22 @@ class DBManager:
             except pyodbc.Error as e:
                 print(f"Error en diagnóstico de conexión: {e}")
             finally:
+                # El bloque 'finally' se ejecuta SÍ O SÍ, ocurra o no un error. 
+                # Es vital para cerrar la conexión y no dejar conexiones 'muertas' saturando el servidor.
                 conn.close()
             
     def obtener_estaciones(self):
-        """Consula la base de datos y retorna una lista de diccionarios con las PCs"""
+        """
+        TRANSFORMACIÓN DE RELACIONAL A OBJETOS (ORM BÁSICO):
+        Consulta el estado físico-lógico del Lan Center y empaqueta las tuplas en diccionarios de Python.
+        """
         conn = self.conectar()
         lista_estaciones = []
         if conn:
             try:
                 with conn.cursor() as cursor:
-                    # Aplicamos el LEFT JOIN para las computadoras e INNER JOIN para las Estaciones con la categoria
+                    # - INNER JOIN vincula Estaciones con CategoriasEstacion obligatoriamente (trae tarifas y nombres oficiales).
+                    # - LEFT JOIN es la clave de infraestructura: trae todas las mesas, tengan o no un hardware físico asignado.
                     consulta = """
                         SELECT e.id_estacion, e.codigo_pc, cat.nombre_categoria, e.estado_actual,
                                c.procesador, c.memoria_ram, c.tarjeta_grafica, c.monitor, c.mouse
@@ -49,9 +71,11 @@ class DBManager:
                         LEFT JOIN Computadoras c ON e.codigo_pc = c.codigo_pc
                     """
                     cursor.execute(consulta)
-                    filas = cursor.fetchall()
+                    filas = cursor.fetchall() # fetchall() descarga todas las filas resultantes a la memoria RAM en forma de lista de tuplas.
                     
                     for fila in filas:
+                        # ESTRUCTURA DE MAPEO: Traducimos los índices numéricos de la tupla SQL (fila[0], fila[1])
+                        # en llaves semánticas de un diccionario, haciendo que la UI de Python sea fácil de mantener.
                         estacion = {
                             "id_estacion" : fila[0],
                             "codigo_pc" : fila[1],
@@ -74,7 +98,7 @@ class DBManager:
         return lista_estaciones 
     
     def obtener_productos(self):
-        """Consulta la base de datos y retorna una lista de diccionarios con los productos"""
+        """Consulta el almacén y retorna una lista de diccionarios con el stock disponible"""
         conn = self.conectar()
         lista_productos = []
         if conn:
@@ -92,7 +116,7 @@ class DBManager:
                         producto = {
                             "id_producto" : fila[0],
                             "nombre_producto" : fila[1],
-                            "precio" : float(fila[2]),
+                            "precio" : float(fila[2]), # Convertimos el DECIMAL de SQL a float en Python para cálculos precisos.
                             "stock" : fila[3]
                         }
                         lista_productos.append(producto)
@@ -104,16 +128,20 @@ class DBManager:
         return lista_productos
             
     def actualizar_estado_pc(self, id_estacion, nuevo_estado):
-        """Actualiza el estado de la PC en la base de datos"""
+        """Cambia el estado de una PC en la base de datos (Disponible, Ocupada, Mantenimiento)"""
         conn = self.conectar()
         if conn:
             try:
                 with conn.cursor() as cursor:
+                    # El uso de '?' son PARÁMETROS DE CONSULTA. Evita la concatenación directa de strings,
+                    # cerrándole las puertas al 100% a ataques de Inyección SQL.
                     consulta = """
                         UPDATE Estaciones
                         SET estado_actual = ? WHERE id_estacion = ?        
                     """
                     cursor.execute(consulta, (nuevo_estado, id_estacion))
+                    
+                    # conn.commit() guarda los cambios de forma permanente en el disco duro de SQL Server.
                     conn.commit()
                     print(f"Base de datos actualizada con éxito | PC: {id_estacion} Estado: {nuevo_estado}")
             except pyodbc.Error as e:
@@ -122,7 +150,7 @@ class DBManager:
                 conn.close()
     
     def obtener_todos_los_usuarios(self):
-        """Obtiene una lista básica de todos los gamers para el selector de la interfaz"""
+        """Obtiene una lista básica de todos los gamers para poblar el selector (Combobox) de la UI"""
         conn = self.conectar()
         lista_usuarios = []
         if conn:
@@ -147,13 +175,13 @@ class DBManager:
         return lista_usuarios
      
     def obtener_usuario(self, id_usuario):
-        """Busca un usuario en la BD por su ID y retorna sus datos"""
+        """Busca un usuario específico uniendo su rango en 3FN para calcular sus beneficios en Python"""
         conn = self.conectar()
         datos_usuario = None
         if conn:
             try:
                 with conn.cursor() as cursor:
-                    # Aplicamos INNER JOIN para obtener el rango de RangosCuenta
+                    # INNER JOIN TRADUCTOR: Transforma la FK 'id_rango' en la palabra real ('Bronce', 'Diamante')
                     consulta = """
                         SELECT u.id_usuario, u.alias_gamer, r.nombre_rango, u.saldo_billetera, u.minutos_acumulados 
                         FROM Usuarios u
@@ -179,7 +207,7 @@ class DBManager:
         return datos_usuario
     
     def actualizar_saldo_usuario(self, id_usuario, nuevo_saldo):
-        """Actualiza el saldo del usuario en la BD"""
+        """Sincroniza el monedero virtual del cliente tras una recarga en caja"""
         conn = self.conectar()
         if conn:
             try:
@@ -194,7 +222,10 @@ class DBManager:
                 conn.close()
                 
     def actualizar_progreso_usuario(self, id_usuario, saldo, rango, minutos):
-        """Guarda el saldo actual, el rango y los minutos jugados tras finalizar una sesión"""
+        """
+        SUBCONSULTA EN LÍNEA: Guarda el progreso traduciendo la palabra del rango ('Plata', 'Diamante')
+        al ID numérico correspondiente en la tabla maestra 'RangosCuenta' de forma interna en SQL.
+        """
         conn = self.conectar()
         if conn:
             try:
@@ -213,17 +244,17 @@ class DBManager:
             finally:
                 conn.close()
                 
-    def registrar_usuario(self, alias_gamer, rango_cuenta, saldo_inicial):
-        """Inserta un nuevo gamer a la base de datos y retorna True si tuvo exito"""
+    def registrar_usuario(self, alias_gamer, saldo_inicial):
+        """CRUD: Create - Añade una nueva cuenta de cliente al ecosistema del Cyber"""
         conn = self.conectar()
         if conn:
             try:
                 with conn.cursor() as cursor:
                     consulta = """
-                        INSERT INTO Usuarios (alias_gamer, rango_cuenta, saldo_billetera)
-                        VALUES (?, ?, ?)
+                        INSERT INTO Usuarios (alias_gamer, saldo_billetera)
+                        VALUES (?, ?)
                     """
-                    cursor.execute(consulta, (alias_gamer, rango_cuenta, saldo_inicial))
+                    cursor.execute(consulta, (alias_gamer, saldo_inicial))
                     conn.commit()
                     print(f"Usuario {alias_gamer} guardado en la base de datos con éxito")
                     return True
@@ -235,11 +266,13 @@ class DBManager:
         return False
                 
     def guardar_historial_sesion(self, id_usuario, id_estacion, hora_inicio, hora_fin, monto_cobrado):
-        """Inserta el registro final de una sesión terminada para el cuadre de caja"""
+        """Inserta un registro histórico al cerrar una sesión para las auditorías financieras"""
         conn = self.conectar()
         if conn:
             try:
                 with conn.cursor() as cursor:
+                    # FILTRO DE FECHA SEGURO: Convierte ambos campos con CAST a DATE para aislar las horas
+                    # e igualar únicamente el año-mes-día de hoy.
                     consulta = """
                         INSERT INTO Sesiones (id_usuario, id_estacion, hora_inicio, hora_fin, monto_cobrado)
                         VALUES (?, ?, ?, ?, ?)
@@ -253,12 +286,15 @@ class DBManager:
                 conn.close()
     
     def obtener_reporte_caja_hoy(self):
+        """Crea el registro de control de sesión inyectando la llave primaria del empleado que autoriza el alquiler"""
         conn = self.conectar()
         total_ingresos = 0.0
         
         if conn:
             try:
                 with conn.cursor() as cursor:
+                    # FILTRO DE FECHA SEGURO: Convierte ambos campos con CAST a DATE para aislar las horas
+                    # e igualar únicamente el año-mes-día de hoy.
                     consulta = """
                         SELECT SUM(monto_cobrado)
                         FROM Sesiones
@@ -276,12 +312,14 @@ class DBManager:
         return total_ingresos
     
     def registrar_inicio_sesion(self, id_usuario, id_empleado, id_estacion, hora_inicio):
-        """Ïnserta el inicio de una sesión en la BD asociando al cajero de turno"""
+        """Crea el registro de control de sesión inyectando la llave primaria del empleado que autoriza el alquiler"""
         conn = self.conectar()
         id_sesion = None
         if conn:
             try:
                 with conn.cursor() as cursor:
+                    # CLÁUSULA OUTPUT INSERTED: Técnica avanzada para capturar el ID autonumérico IDENTITY(1,1)
+                    # que SQL Server acaba de generar, devolviéndolo inmediatamente a Python sin hacer otro SELECT.
                     consulta = """
                         INSERT INTO Sesiones (id_usuario, id_empleado, id_estacion, hora_inicio, hora_fin, monto_cobrado)
                         OUTPUT INSERTED.id_sesion
@@ -298,7 +336,7 @@ class DBManager:
         return id_sesion
     
     def actualizar_fin_sesion(self, id_sesion, hora_fin, monto_cobrado):
-        """Completa el registro de una sesión existente al finalizarla"""
+        """Sella una sesión activa registrando la hora de salida y el dinero auditado final"""
         conn = self.conectar()
         exito = False
         if conn:
@@ -320,7 +358,7 @@ class DBManager:
         return exito
     
     def obtener_sesiones_activas(self):
-        """Busca todas las sesiones en la BD que no tienen hora_fin (activas antes de una caída)"""
+        """SISTEMA TOLERANTE A APAGONES: Recupera sesiones colgadas (hora_fin IS NULL) al abrir la app"""
         conn = self.conectar()
         lista_sesiones = []
         if conn:
@@ -347,13 +385,17 @@ class DBManager:
         return lista_sesiones
     
     def procesar_compra_kiosco(self, id_usuario, id_empleado, total_venta, carrito):
-        """Registra cabecera, detalle y descuenta stock en una sola transacción segura (ACID)"""
+        """
+        TRANSACCIÓN PURA CON ATOMICIDAD (ACID):
+        Garantiza que la Cabecera, el Detalle y la reducción de Stock ocurran como un bloque único.
+        Si una sola de las 10 golosinas falla por falta de stock, TODO se anula, protegiendo las cuentas.
+        """
         conn = self.conectar()
         exito = False
         if conn:
             try:
                 with conn.cursor() as cursor:
-                    # 1. Insertamos la Cabecera (Ventas) y capturamos el ID generado
+                    # 1. Insertamos la Cabecera de venta y capturamos el ID del ticket
                     consulta_cabecera = """
                         INSERT INTO Ventas (id_usuario, id_empleado, monto_total)
                         OUTPUT INSERTED.id_venta
@@ -362,25 +404,27 @@ class DBManager:
                     cursor.execute(consulta_cabecera, (id_usuario, id_empleado, total_venta))
                     id_venta = cursor.fetchone()[0]
                     
-                    # 2. Preparamos las consultas para el bucle
+                    # 2. Consultas preparadas optimizadas
                     consulta_detalle = """
                         INSERT INTO DetalleVentas (id_venta, id_producto, cantidad, precio_unitario, subtotal)
                         VALUES (?, ?, ?, ?, ?)
                     """
                     consulta_stock = "UPDATE Productos SET stock = stock - ? WHERE id_producto = ?"
                     
-                    # 3. Iteramos el carrito: Insertamos en el Detalle y restamos el Stock
+                    # 3. Iteración en memoria RAM del carrito de compras
+                    # carrito.items() descompone el diccionario en (clave, datos) para recorrerlo en el bucle.
                     for id_prod, datos in carrito.items():
                         subtotal = datos["precio"] * datos["cantidad"]
                         cursor.execute(consulta_detalle, (id_venta, id_prod, datos["cantidad"], datos["precio"], subtotal))
                         cursor.execute(consulta_stock, (datos["cantidad"], id_prod))
                     
-                    # 4. Si todo salió bien, sellamos la transacción (El martillazo final)
+                    # 4. SELLADO TRANSACCIONAL: Si la RAM llegó limpia aquí, impactamos el disco de SQL Server de golpe.
                     conn.commit()
                     exito = True
                     print(f"Transacción exitosa | Ticket #{id_venta} | Cajero ID: {id_empleado}")
             except pyodbc.Error as e:
-                # ¡MAGIA SENIOR! Si cualquier cosa falla, deshacemos todos los cambios
+                # Rollback: Si salta una excepción, borra del mapa cualquier insert parcial,
+                # devolviendo los inventarios a su estado original. Cero registros corruptos o huérfanos.
                 conn.rollback() 
                 print(f"Error crítico en Kiosco. Se aplicó ROLLBACK de seguridad: {e}")
             finally:
@@ -388,7 +432,7 @@ class DBManager:
         return exito
                 
     def obtener_reporte_tienda_hoy(self):
-        """Calcula el total de ingresos por ventas de kiosco en el día actual"""
+        """Suma los ingresos financieros producidos puramente por el Kiosco/Ventas de snacks hoy"""
         conn = self.conectar()
         total_ingresos = 0.0
         
@@ -413,7 +457,7 @@ class DBManager:
         return total_ingresos
     
     def validar_login(self, usuario, clave):
-        """Busca las credenciales en la BD y retorna los datos del empleado si son correctas"""
+        """CONTROL DE ACCESO (ITSM): Valida las credenciales uniendo la tabla de Empleados con su Rol en 3FN"""
         conn = self.conectar()
         datos_empleado = None
         if conn:
@@ -444,7 +488,11 @@ class DBManager:
         return datos_empleado
     
     def actualizar_hardware_pc(self, codigo_pc, procesador, monitor, ram, gpu):
-        """CRUD: Update - Modifica los componentes de una PC física"""
+        """
+        CRUD: UPDATE DINÁMICO
+        Construye la sentencia UPDATE sobre la marcha analizando qué campos rellenó el administrador.
+        Evita machacar con espacios vacíos los periféricos que no se modificaron.
+        """
         conn = self.conectar()
         if conn:
             try:
@@ -470,12 +518,13 @@ class DBManager:
                         valores.append(monitor)
                         
                     if not campos_set:
-                        return False  # No hay campos para actualizar
+                        return False  # Operación cancelada: No se envió texto en ningún casillero
                     
+                    # ', '.join() une los elementos de una lista de textos agregándoles una coma de por medio.
                     consulta = f"UPDATE Computadoras SET {', '.join(campos_set)} WHERE codigo_pc = ?"
-                    valores.append(codigo_pc)
+                    valores.append(codigo_pc) # Agregamos el identificador para la cláusula WHERE
                     
-                    cursor.execute(consulta, tuple(valores))
+                    cursor.execute(consulta, tuple(valores)) # Convertimos la lista de valores a Tupla por exigencia de pyodbc
                     conn.commit()
                     return True
             except pyodbc.Error as e:
@@ -485,14 +534,19 @@ class DBManager:
         return False
 
     def eliminar_pc_fisica(self, codigo_pc):
-        """CRUD: Delete - Elimina un registro de hardware de la BD"""
+        """
+        CRUD: DELETE CON DESVINCULACIÓN LÓGICA (PROTECCIÓN DE LLAVE FORÁNEA - Error 547)
+        Antes de borrar la máquina física, actualiza la mesa a NULL para no romper la integridad referencial.
+        """
         conn = self.conectar()
         if conn:
             try:
                 with conn.cursor() as cursor:
+                    # Paso 1: La mesa (Estación) suelta pacíficamente la llave foránea
                     consulta_desvincular = "UPDATE Estaciones SET codigo_pc = NULL WHERE codigo_pc = ?"
                     cursor.execute(consulta_desvincular, (codigo_pc,))
                     
+                    # Paso 2: Eliminación segura de la fila física sin provocar excepciones en cascada
                     consulta_eliminar = "DELETE FROM Computadoras WHERE codigo_pc = ?"
                     cursor.execute(consulta_eliminar, (codigo_pc,))
                     
@@ -500,14 +554,14 @@ class DBManager:
                     print(f"Transacción Delete Exitosa: Hardware {codigo_pc} desvinculado y eliminado.")
                     return True
             except pyodbc.Error as e:
-                conn.rollback() # Si algo falla, deshacemos todo para no dejar la base corrupta
+                conn.rollback() # Si falla el paso 2, el paso 1 se revierte por completo
                 print(f"Error CRUD Delete PC: {e}")
             finally:
                 conn.close()
         return False
 
     def eliminar_usuario_gamer(self, id_usuario):
-        """CRUD: Delete - Elimina una cuenta de usuario gamer de la BD"""
+        """CRUD: Delete - Elimina un perfil de la tabla Usuarios"""
         conn = self.conectar()
         if conn:
             try:
@@ -523,6 +577,8 @@ class DBManager:
         return False
     
 if __name__ == "__main__":
+    # Este bloque solo corre si ejecutas 'conexion.py' directamente desde el play del IDE.
+    # Es la técnica estándar para realizar pruebas unitarias rápidas de tus queries sin abrir las ventanas.
     manager = DBManager()
     pcs_reales = manager.obtener_estaciones()
     for pc in pcs_reales:
