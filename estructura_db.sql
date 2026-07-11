@@ -72,7 +72,7 @@ GO
 CREATE TABLE Computadoras (
     codigo_pc VARCHAR(20) PRIMARY KEY,
     procesador VARCHAR(100) NOT NULL,
-    memoria_ram VARCHAR(100) NOT NULL
+    memoria_ram VARCHAR(100) NOT NULL,
     tarjeta_grafica VARCHAR(100) NOT NULL,
     monitor VARCHAR(100) NOT NULL,
     teclado VARCHAR(100),
