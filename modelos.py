@@ -26,7 +26,7 @@ class Usuario:
             "Bronce": 0.0,       # 0% de descuento
             "Plata": 0.05,      # 5% de descuento
             "Oro": 0.10,        # 10% de descuento
-            "Global VIP": 0.20  # 20% de descuento
+            "Diamante": 0.20  # 20% de descuento
         }
         return tabla_beneficios.get(self.rango_cuenta, 0.0)
     
@@ -39,7 +39,7 @@ class Usuario:
         elif self.minutos_acumulados < 6000:
             return "Oro"
         else:
-            return "Global VIP"
+            return "Diamante"
         
     def agregar_minutos_jugados(self, minutos):
         """Suma los minutos de la sesión terminada y recalcula el rango"""

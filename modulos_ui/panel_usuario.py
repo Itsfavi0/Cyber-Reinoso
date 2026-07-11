@@ -46,7 +46,7 @@ class PanelUsuario(tk.LabelFrame):
             "Bronce": "#CD7F32",     # Color cobre/bronce
             "Plata": "#E0E0E0",      # Gris plateado brillante
             "Oro": "#FFD700",        # Dorado intenso
-            "Global VIP": "#B388FF"  # Morado neón (Premium)
+            "Diamante": "#01FFFF"    # Morado neón (Premium)
         }
         color_rango = colores_rango.get(usuario.rango_cuenta, TEXTO_MAIN)
         

@@ -75,7 +75,7 @@ class AppCyberReinoso(tk.Tk):
                             alias_gamer=datos_usr["alias_gamer"],
                             rango_cuenta=datos_usr["rango_cuenta"],
                             saldo_billetera=datos_usr["saldo_billetera"],
-                            minutos_acumulados=datos_usr.get("minutos_acumulados", 0)) if datos_usr else Usuario(999, "Invitado", 0.0)
+                            minutos_acumulados=datos_usr.get("minutos_acumulados", 0))
         
         sesiones_db = db.obtener_sesiones_activas()
         for s in sesiones_db:

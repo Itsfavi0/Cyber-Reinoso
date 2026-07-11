@@ -40,11 +40,12 @@ class DBManager:
         if conn:
             try:
                 with conn.cursor() as cursor:
-                    # Aplicamos el LEFT JOIN para unir el módulo lógico con la PC física
+                    # Aplicamos el LEFT JOIN para las computadoras e INNER JOIN para las Estaciones con la categoria
                     consulta = """
-                        SELECT e.id_estacion, e.codigo_pc, e.categoria, e.estado_actual,
+                        SELECT e.id_estacion, e.codigo_pc, cat.nombre_categoria, e.estado_actual,
                                c.procesador, c.tarjeta_grafica, c.monitor, c.mouse
                         FROM Estaciones e
+                        INNER JOIN CategoriasEstacion cat ON e.id_categoria = cat.id_categoria
                         LEFT JOIN Computadoras c ON e.codigo_pc = c.codigo_pc
                     """
                     cursor.execute(consulta)
@@ -151,7 +152,13 @@ class DBManager:
         if conn:
             try:
                 with conn.cursor() as cursor:
-                    consulta = "SELECT id_usuario, alias_gamer, rango_cuenta, saldo_billetera, minutos_acumulados FROM Usuarios WHERE id_usuario = ?"
+                    # Aplicamos INNER JOIN para obtener el rango de RangosCuenta
+                    consulta = """
+                        SELECT u.id_usuario, u.alias_gamer, r.nombre_rango, u.saldo_billetera, u.minutos_acumulados 
+                        FROM Usuarios u
+                        INNER JOIN RangosCuenta r ON u.id_rango = r.id_rango 
+                        WHERE u.id_usuario = ?
+                    """
                     cursor.execute(consulta, (id_usuario,))
                     fila = cursor.fetchone()
                     
@@ -191,7 +198,13 @@ class DBManager:
         if conn:
             try:
                 with conn.cursor() as cursor:
-                    consulta = "UPDATE Usuarios SET saldo_billetera = ?, rango_cuenta = ?, minutos_acumulados = ? WHERE id_usuario = ?"
+                    consulta = """
+                        UPDATE Usuarios 
+                        SET saldo_billetera = ?, 
+                            id_rango = (SELECT id_rango FROM RangosCuenta WHERE nombre_rango = ?), 
+                            minutos_acumulados = ? 
+                        WHERE id_usuario = ?
+                    """
                     cursor.execute(consulta, (saldo, rango, minutos, id_usuario))
                     conn.commit()
             except pyodbc.Error as e:
@@ -405,7 +418,12 @@ class DBManager:
         if conn:
             try:
                 with conn.cursor() as cursor:
-                    consulta = "SELECT id_empleado, nombre, rol FROM Empleados WHERE usuario = ? AND clave = ?"
+                    consulta = """
+                        SELECT e.id_empleado, e.nombre, r.nombre_rol 
+                        FROM Empleados e
+                        INNER JOIN Roles r ON e.id_rol = r.id_rol
+                        WHERE e.usuario = ? AND e.clave = ?
+                    """
                     cursor.execute(consulta, (usuario, clave))
                     fila = cursor.fetchone()
                     
