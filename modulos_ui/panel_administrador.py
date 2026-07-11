@@ -8,6 +8,7 @@ de mantenimiento físico de hardware y depuración de registros en la base de da
 import tkinter as tk
 from tkinter import ttk, messagebox
 from conexion import DBManager
+from modulos_ui.ventanas_emergentes import VentanaRegistro, VentanaReporteCaja
 
 # --- PALETA DE COLORES ---
 BG_PANEL = "#1E1E1E"
@@ -38,7 +39,46 @@ class PanelAdministrador(tk.LabelFrame):
             widget.destroy()
 
         db = DBManager()
+        
+        # =========================================================================
+        # SECCIÓN 1: GESTIÓN OPERATIVA Y CAJA
+        # =========================================================================
+        tk.Label(self, text="📊 Operaciones de Caja:", font=("Segoe UI", 10, "bold"), bg=BG_PANEL, fg=TEXTO_MAIN).pack(anchor="w", pady=(0, 5))
 
+        # Botón: Registrar Nuevo Usuario
+        self.btn_registro = tk.Button(
+            self, 
+            text="➕ Registrar Nuevo Gamer", 
+            font=("Segoe UI", 10, "bold"), 
+            bg="#6A1B9A", 
+            fg="white", 
+            relief="flat", 
+            pady=6, 
+            cursor="hand2",
+            command=lambda: VentanaRegistro(self.controlador, callback_actualizar=self.controlador.refrescar_interfaz)
+        )
+        self.btn_registro.pack(fill=tk.X, pady=(0, 8))
+        self.btn_registro.bind("<Enter>", lambda e: self.btn_registro.config(bg="#8E24AA"))
+        self.btn_registro.bind("<Leave>", lambda e: self.btn_registro.config(bg="#6A1B9A"))
+
+        # Botón: Reporte de Caja
+        self.btn_reporte = tk.Button(
+            self, 
+            text="📈 Reporte de Caja (Hoy)", 
+            font=("Segoe UI", 10, "bold"), 
+            bg="#E65100", 
+            fg="white", 
+            relief="flat", 
+            pady=6, 
+            cursor="hand2",
+            command=lambda: VentanaReporteCaja(self.controlador)
+        )
+        self.btn_reporte.pack(fill=tk.X, pady=(0, 15))
+        self.btn_reporte.bind("<Enter>", lambda e: self.btn_reporte.config(bg="#F57C00"))
+        self.btn_reporte.bind("<Leave>", lambda e: self.btn_reporte.config(bg="#E65100"))
+
+        # Separador visual
+        tk.Frame(self, bg="#333333", height=1).pack(fill=tk.X, pady=(0, 15))
         # =========================================================================
         # SECCIÓN U (UPDATE): ACTUALIZAR COMPONENTES DE COMPUTADORAS
         # =========================================================================

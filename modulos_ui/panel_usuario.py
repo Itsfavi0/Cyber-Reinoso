@@ -9,7 +9,7 @@ inscripción de nuevos usuarios y visualización de auditorías de caja diaria.
 import tkinter as tk
 from tkinter import ttk
 from conexion import DBManager
-from modulos_ui.ventanas_emergentes import VentanaRegistro, VentanaRecarga, VentanaReporteCaja
+from modulos_ui.ventanas_emergentes import VentanaRecarga
 from modulos_ui.panel_kiosco import VentanaTienda
 
 # --- PALETA MODO OSCURO COHERENTE ---
@@ -88,7 +88,7 @@ class PanelUsuario(tk.LabelFrame):
         tk.Label(self, text=f"S/ {usuario.saldo_billetera:.2f}", font=("Segoe UI", 18, "bold"), bg=BG_PANEL, fg=COLOR_DISPONIBLE).pack(anchor="w", pady=(0, 20))
         
         # ---------------------------------------------------------------------
-        # CONTROLADORES MODALES DE FLUJO OPERATIVO
+        # ACCIONES DIRECTAS DEL CLIENTE SELECCIONADO
         # ---------------------------------------------------------------------
         
         # --- Botón 1: Recargar Billetera ---
@@ -130,39 +130,3 @@ class PanelUsuario(tk.LabelFrame):
         self.btn_tienda.pack(fill=tk.X, pady=(0, 20))
         self.btn_tienda.bind("<Enter>", lambda e: self.btn_tienda.config(bg="#1E88E5"))
         self.btn_tienda.bind("<Leave>", lambda e: self.btn_tienda.config(bg="#1565C0"))
-        
-        # --- Botón 3: Registrar nuevo Usuario ---
-        self.btn_registro = tk.Button(
-            self, 
-            text="➕ Registrar nuevo Usuario", 
-            font=("Segoe UI", 10, "bold"), 
-            bg="#6A1B9A", 
-            fg="white", 
-            relief="flat", 
-            activebackground="#4A148C", 
-            activeforeground="white",
-            pady=6,
-            cursor="hand2",
-            command=lambda: VentanaRegistro(self.controlador, callback_actualizar=self.controlador.refrescar_interfaz)
-        )
-        self.btn_registro.pack(fill=tk.X, pady=(0, 15))
-        self.btn_registro.bind("<Enter>", lambda e: self.btn_registro.config(bg="#8E24AA"))
-        self.btn_registro.bind("<Leave>", lambda e: self.btn_registro.config(bg="#6A1B9A"))
-        
-        # --- Botón 4: Reporte de Caja ---
-        self.btn_reporte = tk.Button(
-            self, 
-            text="📊 Reporte de Caja (Hoy)", 
-            font=("Segoe UI", 10, "bold"), 
-            bg="#E65100", 
-            fg="white", 
-            relief="flat", 
-            activebackground="#BF360C", 
-            activeforeground="white",
-            pady=6,
-            cursor="hand2",
-            command=lambda: VentanaReporteCaja(self.controlador)
-        )
-        self.btn_reporte.pack(fill=tk.X)
-        self.btn_reporte.bind("<Enter>", lambda e: self.btn_reporte.config(bg="#F57C00"))
-        self.btn_reporte.bind("<Leave>", lambda e: self.btn_reporte.config(bg="#E65100"))
