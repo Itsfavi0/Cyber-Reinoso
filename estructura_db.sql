@@ -56,7 +56,7 @@ CREATE TABLE Usuarios (
     id_rango INT NOT NULL DEFAULT 1,
     saldo_billetera DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     minutos_acumulados INT NOT NULL DEFAULT 0,
-    activo BIT NOT NULL DEFAULT 1,
+    estado BIT NOT NULL DEFAULT 1,
 
     FOREIGN KEY (id_rango) REFERENCES RangosCuenta(id_rango)
 )
@@ -89,7 +89,7 @@ CREATE TABLE Estaciones (
     codigo_pc VARCHAR(20) NULL,
     id_categoria INT NOT NULL,
     estado_actual VARCHAR(20) NOT NULL DEFAULT 'Disponible',
-    activo BIT NOT NULL DEFAULT 1,
+    estado BIT NOT NULL DEFAULT 1,
 
     FOREIGN KEY (codigo_pc) REFERENCES Computadoras(codigo_pc),
     FOREIGN KEY (id_categoria) REFERENCES CategoriasEstacion(id_categoria)

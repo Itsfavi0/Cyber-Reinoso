@@ -152,7 +152,7 @@ class DBManager:
     def obtener_todos_los_usuarios(self):
         """
         Obtiene una lista básica de todos los gamers para poblar el selector (Combobox) de la UI
-        Solo retorna aquellos clientes donde activo = 1, ocultando los eliminados.
+        Solo retorna aquellos clientes donde estado = 1, ocultando los eliminados.
         """        
         conn = self.conectar()
         lista_usuarios = []
@@ -160,7 +160,7 @@ class DBManager:
             try:
                 with conn.cursor() as cursor:
                     cursor.execute(
-                        "SELECT id_usuario, alias_gamer FROM Usuarios WHERE activo = 1 ORDER BY alias_gamer ASC"
+                        "SELECT id_usuario, alias_gamer FROM Usuarios WHERE estado = 1"
                     )
                     filas = cursor.fetchall()
                     
@@ -550,7 +550,7 @@ class DBManager:
                     consulta = """
                         UPDATE Estaciones 
                         SET estado_actual = 'Mantenimiento',
-                            activo = 0 
+                            estado = 0 
                         WHERE codigo_pc = ?
                     """
                     cursor.execute(consulta, (codigo_pc,))
@@ -569,14 +569,14 @@ class DBManager:
         """
         CRUD: Delete (Implementado como BORRADO LÓGICO / SOFT DELETE)
         En lugar de destruir físicamente la fila (y romper las llaves foráneas de Sesiones/Ventas),
-        cambia el estado de la columna 'activo' a 0 (False).
+        cambia el estado de la columna 'estado' a 0 (False).
         """
         conn = self.conectar()
         if conn:
             try:
                 with conn.cursor() as cursor:
                     # UPDATE que inabilita la cuenta sin tocar el historial contable
-                    consulta = "UPDATE Usuarios SET activo = 0 WHERE id_usuario = ?"
+                    consulta = "UPDATE Usuarios SET estado = 0 WHERE id_usuario = ?"
                     cursor.execute(consulta, (id_usuario,))
                     conn.commit()
                     return True
