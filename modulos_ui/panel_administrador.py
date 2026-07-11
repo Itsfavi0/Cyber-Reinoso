@@ -121,15 +121,41 @@ class PanelAdministrador(tk.LabelFrame):
         self.btn_update.pack(fill=tk.X, pady=(0, 20))
 
         # =========================================================================
-        # SECCIÓN D (DELETE): ZONA DE ELIMINACIÓN DE REGISTROS
+        # SECCIÓN D (DELETE): GESTIÓN DE ESTADO Y SOPORTE
         # =========================================================================
-        tk.Label(self, text="🗑️ Zona de Eliminación:", font=("Segoe UI", 10, "bold"), bg=BG_PANEL, fg=TEXTO_MAIN).pack(anchor="w", pady=(0, 5))
+        tk.Label(self, text="🛠️ Gestión de Estado y Soporte:", font=("Segoe UI", 10, "bold"), bg=BG_PANEL, fg=TEXTO_MAIN).pack(anchor="w", pady=(10, 5))
 
-        self.btn_del_pc = tk.Button(self, text="❌ Eliminar PC Seleccionada", font=("Segoe UI", 9, "bold"), bg=COLOR_ELIMINAR, fg="white", relief="flat", pady=6, cursor="hand2", command=self.ejecutar_eliminar_pc)
+        # Botón para retirar máquina a mantenimiento
+        self.btn_del_pc = tk.Button(
+            self, 
+            text="🛠️ Enviar a Mantenimiento", 
+            font=("Segoe UI", 9, "bold"), 
+            bg="#D84315", # Naranja quemado
+            fg="white", 
+            relief="flat", 
+            pady=6, 
+            cursor="hand2", 
+            command=self.ejecutar_retirar_pc
+        )
         self.btn_del_pc.pack(fill=tk.X, pady=(0, 10))
+        self.btn_del_pc.bind("<Enter>", lambda e: self.btn_del_pc.config(bg="#E65100"))
+        self.btn_del_pc.bind("<Leave>", lambda e: self.btn_del_pc.config(bg="#D84315"))
 
-        self.btn_del_user = tk.Button(self, text="👤 Eliminar Gamer Activo", font=("Segoe UI", 9, "bold"), bg="#C62828", fg="white", relief="flat", pady=6, cursor="hand2", command=self.ejecutar_eliminar_usuario)
+        # Botón para inhabilitar usuario gamer
+        self.btn_del_user = tk.Button(
+            self, 
+            text="🚫 Desactivar Cuenta Gamer", 
+            font=("Segoe UI", 9, "bold"), 
+            bg="#C62828", # Rojo oscuro de inhabilitación
+            fg="white", 
+            relief="flat", 
+            pady=6, 
+            cursor="hand2", 
+            command=self.ejecutar_desactivar_usuario
+        )
         self.btn_del_user.pack(fill=tk.X)
+        self.btn_del_user.bind("<Enter>", lambda e: self.btn_del_user.config(bg="#E53935"))
+        self.btn_del_user.bind("<Leave>", lambda e: self.btn_del_user.config(bg="#C62828"))
 
     def ejecutar_actualizacion_pc(self):
         """Captura los datos del formulario de hardware y gatilla el UPDATE parcial en la BD"""
@@ -163,40 +189,39 @@ class PanelAdministrador(tk.LabelFrame):
             self.controlador.cargar_datos_iniciales()
             self.controlador.refrescar_interfaz()
 
-    def ejecutar_eliminar_pc(self):
-        """Gatilla el borrado físico de un hardware del Lan Center"""
+    def ejecutar_retirar_pc(self):
+        """Transición de estado: Retira una PC operativa hacia el taller de soporte técnico (Soft Delete)"""
         pc_codigo = self.combo_pcs.get()
         if not pc_codigo: return
 
-        # INTERFAZ CONFIRMATIVA: Abre un modal de doble check (Sí/No) para prevenir clics accidentales del cajero.
-        confirmar = messagebox.askyesno("CRUD: Delete", f"¿Está seguro de eliminar por completo la {pc_codigo}?\nEsto borrará su estación lógica.", parent=self)
+        confirmar = messagebox.askyesno(
+            "Soporte Técnico", 
+            f"¿Está seguro de pasar la {pc_codigo} a estado de MANTENIMIENTO?\n\nLa estación quedará deshabilitada en el mapa para alquiler, pero el hardware se conservará vinculado para su futura reactivación.", 
+            parent=self
+        )
         if confirmar:
             db = DBManager()
             if db.eliminar_pc_fisica(pc_codigo):
-                messagebox.showinfo("Éxito", f"Máquina {pc_codigo} eliminada del sistema.", parent=self)
-                # Refrescamos el ecosistema para que en el panel central esa mesa pase a decir "MÓDULO VACÍO"
+                messagebox.showinfo("Soporte Técnico", f"Máquina {pc_codigo} enviada a mantenimiento correctamente.", parent=self)
                 self.controlador.cargar_datos_iniciales()
                 self.controlador.refrescar_interfaz()
 
-    def ejecutar_eliminar_usuario(self):
-        """Gatilla el borrado físico de la cuenta del gamer activo seleccionado en la UI"""
+    def ejecutar_desactivar_usuario(self):
+        """Transición de estado: Inhabilita la cuenta de un gamer sin alterar su historial contable"""
         usuario = self.controlador.usuario_activo
-        
-        # REGLA DE NEGOCIO CRÍTICA (PROTECCIÓN DE INTEGRIDAD OPERATIVA):
-        # El usuario con ID 1 es el 'Invitado General' que usa el sistema por defecto al iniciar. 
-        # Si un administrador lo borrara de la base de datos, el software lanzaría un IndexError y se caería
-        # al arrancar en main.py. Por lo tanto, blindamos este registro bloqueando su eliminación.
         if usuario.id_usuario == 1:
-            messagebox.showwarning("Acción denegada", "No puedes eliminar al usuario base por defecto del sistema.", parent=self)
+            messagebox.showwarning("Acción denegada", "No puedes desactivar al usuario base (Invitado) por defecto del sistema.", parent=self)
             return
 
-        confirmar = messagebox.askyesno("CRUD: Delete", f"¿Está seguro de eliminar permanentemente al gamer {usuario.alias_gamer}?", parent=self)
+        confirmar = messagebox.askyesno(
+            "Desactivar Cuenta", 
+            f"¿Está seguro de inhabilitar la cuenta del gamer '{usuario.alias_gamer}'?\n\nEl usuario ya no aparecerá en el selector de clientes, pero sus transacciones y tickets de compra antiguos se conservarán intactos en la auditoría contable.", 
+            parent=self
+        )
         if confirmar:
             db = DBManager()
             if db.eliminar_usuario_gamer(usuario.id_usuario):
-                messagebox.showinfo("Éxito", f"Usuario {usuario.alias_gamer} eliminado correctamente.", parent=self)
-                
-                # Al eliminarse el usuario activo, regresamos el control al usuario por defecto cargando la data de nuevo
+                messagebox.showinfo("Éxito", f"La cuenta de '{usuario.alias_gamer}' ha sido desactivada del sistema.", parent=self)
                 self.controlador.cargar_datos_iniciales()
                 self.controlador.refrescar_interfaz()
 

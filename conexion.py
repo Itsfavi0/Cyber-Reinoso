@@ -150,14 +150,17 @@ class DBManager:
                 conn.close()
     
     def obtener_todos_los_usuarios(self):
-        """Obtiene una lista básica de todos los gamers para poblar el selector (Combobox) de la UI"""
+        """
+        Obtiene una lista básica de todos los gamers para poblar el selector (Combobox) de la UI
+        Solo retorna aquellos clientes donde activo = 1, ocultando los eliminados.
+        """        
         conn = self.conectar()
         lista_usuarios = []
         if conn:
             try:
                 with conn.cursor() as cursor:
                     cursor.execute(
-                        "SELECT id_usuario, alias_gamer FROM Usuarios ORDER BY alias_gamer ASC"
+                        "SELECT id_usuario, alias_gamer FROM Usuarios WHERE activo = 1 ORDER BY alias_gamer ASC"
                     )
                     filas = cursor.fetchall()
                     
@@ -535,23 +538,25 @@ class DBManager:
 
     def eliminar_pc_fisica(self, codigo_pc):
         """
-        CRUD: DELETE CON DESVINCULACIÓN LÓGICA (PROTECCIÓN DE LLAVE FORÁNEA - Error 547)
-        Antes de borrar la máquina física, actualiza la mesa a NULL para no romper la integridad referencial.
+        CRUD: Delete (Estaciones/Computadoras - IMPLEMENTADO COMO SOFT DELETE)
+        En lugar de purgar los registros físicos, desvincula el hardware, pone la estación 
+        en estado 'Hibernación' y la marca como inactiva (activa = 0) para proteger las FK de las Sesiones.
         """
         conn = self.conectar()
         if conn:
             try:
                 with conn.cursor() as cursor:
-                    # Paso 1: La mesa (Estación) suelta pacíficamente la llave foránea
-                    consulta_desvincular = "UPDATE Estaciones SET codigo_pc = NULL WHERE codigo_pc = ?"
-                    cursor.execute(consulta_desvincular, (codigo_pc,))
-                    
-                    # Paso 2: Eliminación segura de la fila física sin provocar excepciones en cascada
-                    consulta_eliminar = "DELETE FROM Computadoras WHERE codigo_pc = ?"
-                    cursor.execute(consulta_eliminar, (codigo_pc,))
+                    # Paso 1: Desvinculamos el hardware, cambiamos su estado a Hibernación y aplicamos Soft Delete (activa = 0)
+                    consulta = """
+                        UPDATE Estaciones 
+                        SET estado_actual = 'Mantenimiento',
+                            activo = 0 
+                        WHERE codigo_pc = ?
+                    """
+                    cursor.execute(consulta, (codigo_pc,))
                     
                     conn.commit()
-                    print(f"Transacción Delete Exitosa: Hardware {codigo_pc} desvinculado y eliminado.")
+                    print(f"Soft Delete de Estación Exitoso: Hardware {codigo_pc} desvinculado y puesto en mantenimiento.")
                     return True
             except pyodbc.Error as e:
                 conn.rollback() # Si falla el paso 2, el paso 1 se revierte por completo
@@ -561,12 +566,17 @@ class DBManager:
         return False
 
     def eliminar_usuario_gamer(self, id_usuario):
-        """CRUD: Delete - Elimina un perfil de la tabla Usuarios"""
+        """
+        CRUD: Delete (Implementado como BORRADO LÓGICO / SOFT DELETE)
+        En lugar de destruir físicamente la fila (y romper las llaves foráneas de Sesiones/Ventas),
+        cambia el estado de la columna 'activo' a 0 (False).
+        """
         conn = self.conectar()
         if conn:
             try:
                 with conn.cursor() as cursor:
-                    consulta = "DELETE FROM Usuarios WHERE id_usuario = ?"
+                    # UPDATE que inabilita la cuenta sin tocar el historial contable
+                    consulta = "UPDATE Usuarios SET activo = 0 WHERE id_usuario = ?"
                     cursor.execute(consulta, (id_usuario,))
                     conn.commit()
                     return True
