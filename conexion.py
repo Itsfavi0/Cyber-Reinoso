@@ -586,6 +586,77 @@ class DBManager:
                 conn.close()
         return False
     
+    def registrar_nueva_estacion(self, codigo_pc, id_categoria, cpu, ram, gpu, monitor):
+        """
+        CRUD: Create (ITSM Hardware & Estación)
+        Inserta las especificaciones técnicas en la tabla 'Computadoras' 
+        y genera su módulo físico correspondiente en 'Estaciones' dentro de una sola transacción ACID.
+        """
+        conn = self.conectar()
+        if conn:
+            try:
+                with conn.cursor() as cursor:
+                    # 1. Insertamos el hardware físico en la tabla Computadoras
+                    consulta_hw = """
+                        INSERT INTO Computadoras (codigo_pc, procesador, memoria_ram, tarjeta_grafica, monitor)
+                        VALUES (?, ?, ?, ?, ?)
+                    """
+                    cursor.execute(consulta_hw, (codigo_pc, cpu, ram, gpu, monitor))
+                    
+                    # 2. Creamos la estación lógica en Estaciones vinculada al código de la PC
+                    # Por defecto inicia operativa ('Disponible') y estado (1)
+                    consulta_estacion = """
+                        INSERT INTO Estaciones (id_categoria, codigo_pc, estado_actual, estado)
+                        VALUES (?, ?, 'Disponible', 1)
+                    """
+                    cursor.execute(consulta_estacion, (id_categoria, codigo_pc))
+                    
+                    conn.commit()
+                    print(f"Éxito ACID: Nueva estación {codigo_pc} registrada e integrada al mapa.")
+                    return True
+            except pyodbc.Error as e:
+                # PROTECCIÓN DE INTEGRIDAD: Si cualquiera de los dos INSERTs falla (ej. código duplicado),
+                # el rollback deshace todo para no dejar registros a medias en el disco duro.
+                conn.rollback()
+                print(f"Error al registrar nueva estación (Transacción revertida): {e}")
+            finally:
+                conn.close()
+        return False
+    
+    def obtener_siguiente_codigo_pc(self):
+        """
+        ALGORITMO DE AUTOGENERACIÓN DE IDs:
+        Consulta la tabla Computadoras para encontrar el código más alto actual (ej. 'PC-012'),
+        extrae la parte numérica, la incrementa en 1 y formatea la nueva cadena con ceros (ej. 'PC-013').
+        """
+        conn = self.conectar()
+        siguiente_codigo = "PC-001" # Valor por defecto si la tabla está completamente vacía
+        if conn:
+            try:
+                with conn.cursor() as cursor:
+                    # EXTRAEMOS EL MÁXIMO NÚMERO:
+                    # SUBSTRING(codigo_pc, 4, LEN(codigo_pc)) corta el texto desde el carácter 4 (después de 'PC-')
+                    # CAST(... AS INT) lo convierte a número para que SQL ordene matemáticamente y no alfabéticamente
+                    consulta = """
+                        SELECT MAX(CAST(SUBSTRING(codigo_pc, 4, LEN(codigo_pc)) AS INT)) 
+                        FROM Computadoras 
+                        WHERE codigo_pc LIKE 'PC-%'
+                    """
+                    cursor.execute(consulta)
+                    resultado = cursor.fetchone()
+                    
+                    if resultado and resultado[0] is not None:
+                        ultimo_numero = int(resultado[0])
+                        nuevo_numero = ultimo_numero + 1
+                        # FORMATO CON CEROS: :03d obliga al número a tener 3 dígitos (ej. 13 -> 013)
+                        siguiente_codigo = f"PC-{nuevo_numero:03d}"
+            except pyodbc.Error as e:
+                print(f"Error al generar el siguiente código de PC: {e}")
+            finally:
+                conn.close()
+                
+        return siguiente_codigo
+    
 if __name__ == "__main__":
     # Este bloque solo corre si ejecutas 'conexion.py' directamente desde el play del IDE.
     # Es la técnica estándar para realizar pruebas unitarias rápidas de tus queries sin abrir las ventanas.

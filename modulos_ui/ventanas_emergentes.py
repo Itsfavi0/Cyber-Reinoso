@@ -248,3 +248,99 @@ class VentanaReporteCaja(tk.Toplevel):
         
         self.btn_cerrar.bind("<Enter>", lambda e: self.btn_cerrar.config(bg="#424242"))
         self.btn_cerrar.bind("<Leave>", lambda e: self.btn_cerrar.config(bg=BG_BOTON))
+        
+# =========================================================================
+# SUB-MODAL 4: ALTA DE NUEVA INFRAESTRUCTURA (CON ID AUTOMÁTICO)
+# =========================================================================
+class VentanaNuevaEstacion(tk.Toplevel):
+    def __init__(self, parent, callback_actualizar):
+        super().__init__(parent)
+        self.callback_actualizar = callback_actualizar
+        self.title("Inaugurar Nueva Estación")
+        self.geometry("400x560")
+        self.config(bg=BG_BASE)
+        self.resizable(False, False)
+        self.grab_set() 
+        
+        self.update_idletasks()
+        ancho = self.winfo_width()
+        alto = self.winfo_height()
+        x = (self.winfo_screenwidth() // 2) - (ancho // 2)
+        y = (self.winfo_screenheight() // 2) - (alto // 2)
+        self.geometry(f"{ancho}x{alto}+{x}+{y}")
+        
+        # 1. GENERAMOS EL CÓDIGO AUTOMÁTICO ANTES DE DIBUJAR LA INTERFAZ
+        db = DBManager()
+        self.codigo_autogenerado = db.obtener_siguiente_codigo_pc()
+        
+        self.construir_interfaz()
+        
+    def construir_interfaz(self):
+        card = tk.Frame(self, bg=BG_PANEL, highlightbackground="#2C2C2C", highlightthickness=1, padx=25, pady=20)
+        card.pack(expand=True, fill=tk.BOTH, padx=20, pady=20)
+        
+        tk.Label(card, text="Añadir Nueva PC", font=("Segoe UI", 16, "bold"), bg=BG_PANEL, fg=TEXTO_MAIN).pack(pady=(0, 15))
+        
+        # --- CAMPO CÓDIGO PC (AUTOMÁTICO Y BLOQUEADO) ---
+        tk.Label(card, text="CÓDIGO DE PC (ASIGNACIÓN AUTOMÁTICA):", font=("Segoe UI", 9, "bold"), bg=BG_PANEL, fg=COLOR_DISPONIBLE).pack(anchor="w")
+        
+        self.entry_codigo = tk.Entry(card, font=("Segoe UI", 11, "bold"), bg="#1A3320", fg=COLOR_DISPONIBLE, relief="flat", bd=5)
+        self.entry_codigo.pack(fill=tk.X, pady=(2, 10))
+        
+        # Insertamos el código autogenerado y bloqueamos el campo para evitar ediciones
+        self.entry_codigo.insert(0, self.codigo_autogenerado)
+        self.entry_codigo.config(state="readonly")
+
+        # Selector: Categoría de la mesa
+        tk.Label(card, text="CATEGORÍA GAMA:", font=("Segoe UI", 9, "bold"), bg=BG_PANEL, fg=TEXTO_SECUNDARIO).pack(anchor="w")
+        self.combo_categoria = ttk.Combobox(card, values=["1 - Regular", "2 - eSports", "3 - Streaming VIP"], state="readonly", font=("Segoe UI", 10))
+        self.combo_categoria.pack(fill=tk.X, pady=(2, 10))
+        self.combo_categoria.current(0)
+
+        # Especificaciones Técnicas (Aquí sí ponemos el foco inicial)
+        tk.Label(card, text="PROCESADOR (CPU):", font=("Segoe UI", 9, "bold"), bg=BG_PANEL, fg=TEXTO_SECUNDARIO).pack(anchor="w")
+        self.entry_cpu = tk.Entry(card, font=("Segoe UI", 10), bg="#2C2C2C", fg="white", relief="flat", bd=4)
+        self.entry_cpu.pack(fill=tk.X, pady=(2, 8))
+        self.entry_cpu.focus_set() # El cursor arranca directo en el CPU
+
+        tk.Label(card, text="MEMORIA RAM:", font=("Segoe UI", 9, "bold"), bg=BG_PANEL, fg=TEXTO_SECUNDARIO).pack(anchor="w")
+        self.entry_ram = tk.Entry(card, font=("Segoe UI", 10), bg="#2C2C2C", fg="white", relief="flat", bd=4)
+        self.entry_ram.pack(fill=tk.X, pady=(2, 8))
+
+        tk.Label(card, text="TARJETA GRÁFICA (GPU):", font=("Segoe UI", 9, "bold"), bg=BG_PANEL, fg=TEXTO_SECUNDARIO).pack(anchor="w")
+        self.entry_gpu = tk.Entry(card, font=("Segoe UI", 10), bg="#2C2C2C", fg="white", relief="flat", bd=4)
+        self.entry_gpu.pack(fill=tk.X, pady=(2, 8))
+
+        tk.Label(card, text="MONITOR / PANTALLA:", font=("Segoe UI", 9, "bold"), bg=BG_PANEL, fg=TEXTO_SECUNDARIO).pack(anchor="w")
+        self.entry_monitor = tk.Entry(card, font=("Segoe UI", 10), bg="#2C2C2C", fg="white", relief="flat", bd=4)
+        self.entry_monitor.pack(fill=tk.X, pady=(2, 15))
+        
+        self.btn_guardar = tk.Button(card, text="🖥️ Inaugurar Estación", font=("Segoe UI", 11, "bold"), bg="#1976D2", fg="white", relief="flat", activebackground="#0D47A1", activeforeground="white", pady=8, cursor="hand2", command=self.guardar)
+        self.btn_guardar.pack(fill=tk.X)
+        
+        self.btn_guardar.bind("<Enter>", lambda e: self.btn_guardar.config(bg="#1E88E5"))
+        self.btn_guardar.bind("<Leave>", lambda e: self.btn_guardar.config(bg="#1976D2"))
+        
+    def guardar(self):
+        # Como el campo es readonly, extraemos el código directamente de nuestra variable de clase
+        codigo = self.codigo_autogenerado
+        categoria_sel = self.combo_categoria.get()
+        cpu = self.entry_cpu.get().strip()
+        ram = self.entry_ram.get().strip()
+        gpu = self.entry_gpu.get().strip()
+        monitor = self.entry_monitor.get().strip()
+        
+        if not cpu or not ram or not gpu or not monitor:
+            messagebox.showwarning("Campos vacíos", "Por favor rellena todas las especificaciones de la máquina.", parent=self)
+            return
+            
+        id_cat = int(categoria_sel.split(" - ")[0])
+        
+        db = DBManager()
+        if db.registrar_nueva_estacion(codigo, id_cat, cpu, ram, gpu, monitor):
+            messagebox.showinfo("Inauguración Exitosa", f"¡La estación {codigo} ha sido añadida correctamente a la sala!", parent=self)
+            if self.callback_actualizar:
+                self.callback_actualizar()
+            self.destroy()
+        else:
+            messagebox.showerror("Error de Inserción", "No se pudo registrar la PC en la base de datos.", parent=self)

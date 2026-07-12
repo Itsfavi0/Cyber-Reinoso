@@ -85,7 +85,6 @@ GO
 
 CREATE TABLE Estaciones (
     id_estacion INT IDENTITY(1,1) PRIMARY KEY,
-    tipo_estacion VARCHAR(50) NOT NULL, 
     codigo_pc VARCHAR(20) NULL,
     id_categoria INT NOT NULL,
     estado_actual VARCHAR(20) NOT NULL DEFAULT 'Disponible',
@@ -230,20 +229,20 @@ GO
 -- ASIGNACIÓN A LOS MÓDULOS LÓGICOS (ESTACIONES)
 -- FKs Categoría: 1 = Regular (S/ 2.00), 2 = eSports (S/ 3.00), 3 = Streaming VIP (S/ 5.00)
 -- =========================================================
-INSERT INTO Estaciones (tipo_estacion, codigo_pc, id_categoria, estado_actual, estado) 
+INSERT INTO Estaciones (codigo_pc, id_categoria, estado_actual, estado) 
 VALUES 
-('Módulo 01', 'PC-001', 1, 'Disponible', 1),
-('Módulo 02', 'PC-002', 1, 'Disponible', 1),
-('Módulo 03', 'PC-003', 1, 'Disponible', 1),
-('Módulo 04', 'PC-004', 1, 'Disponible', 1),
-('Módulo 05', 'PC-005', 2, 'Disponible', 1),
-('Módulo 06', 'PC-006', 2, 'Disponible', 1),
-('Módulo 07', 'PC-007', 2, 'Mantenimiento', 0),
-('Módulo 08', 'PC-008', 2, 'Disponible', 1),
-('Módulo 09', 'PC-009', 2, 'Disponible', 1),
-('Módulo 10', 'PC-010', 3, 'Disponible', 1),
-('Módulo 11', 'PC-011', 3, 'Mantenimiento', 0),
-('Módulo 12', 'PC-012', 3, 'Disponible', 1);
+('PC-001', 1, 'Disponible', 1),
+('PC-002', 1, 'Disponible', 1),
+('PC-003', 1, 'Disponible', 1),
+('PC-004', 1, 'Disponible', 1),
+('PC-005', 2, 'Disponible', 1),
+('PC-006', 2, 'Disponible', 1),
+('PC-007', 2, 'Mantenimiento', 0),
+('PC-008', 2, 'Disponible', 1),
+('PC-009', 2, 'Disponible', 1),
+('PC-010', 3, 'Disponible', 1),
+('PC-011', 3, 'Mantenimiento', 0),
+('PC-012', 3, 'Disponible', 1);
 GO
 
 PRINT '¡Base de datos Cyber Reinoso desplegada con éxito!';

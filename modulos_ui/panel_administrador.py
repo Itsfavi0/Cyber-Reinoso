@@ -8,8 +8,7 @@ de mantenimiento físico de hardware y depuración de registros en la base de da
 import tkinter as tk
 from tkinter import ttk, messagebox
 from conexion import DBManager
-from modulos_ui.ventanas_emergentes import VentanaRegistro, VentanaReporteCaja
-
+from modulos_ui.ventanas_emergentes import VentanaRegistro, VentanaReporteCaja, VentanaNuevaEstacion
 # --- PALETA DE COLORES ---
 BG_PANEL = "#1E1E1E"
 TEXTO_MAIN = "#FFFFFF"
@@ -39,6 +38,38 @@ class PanelAdministrador(tk.LabelFrame):
             widget.destroy()
 
         db = DBManager()
+        
+        # Botón: Registrar Nuevo Usuario
+        self.btn_registro = tk.Button(
+            self, 
+            text="➕ Registrar Nuevo Gamer", 
+            font=("Segoe UI", 10, "bold"), 
+            bg="#6A1B9A", 
+            fg="white", 
+            relief="flat", 
+            pady=6, 
+            cursor="hand2",
+            command=lambda: VentanaRegistro(self.controlador, callback_actualizar=self.controlador.refrescar_interfaz)
+        )
+        self.btn_registro.pack(fill=tk.X, pady=(0, 8))
+        self.btn_registro.bind("<Enter>", lambda e: self.btn_registro.config(bg="#8E24AA"))
+        self.btn_registro.bind("<Leave>", lambda e: self.btn_registro.config(bg="#6A1B9A"))
+
+        # --- NUEVO: BOTÓN AÑADIR ESTACIÓN ---
+        self.btn_add_pc = tk.Button(
+            self, 
+            text="🖥️ Añadir Nueva PC / Mesa", 
+            font=("Segoe UI", 10, "bold"), 
+            bg="#1565C0", # Azul técnico institucional
+            fg="white", 
+            relief="flat", 
+            pady=6, 
+            cursor="hand2",
+            command=lambda: VentanaNuevaEstacion(self.controlador, callback_actualizar=lambda: [self.controlador.cargar_datos_iniciales(), self.controlador.refrescar_interfaz()])
+        )
+        self.btn_add_pc.pack(fill=tk.X, pady=(0, 8))
+        self.btn_add_pc.bind("<Enter>", lambda e: self.btn_add_pc.config(bg="#1E88E5"))
+        self.btn_add_pc.bind("<Leave>", lambda e: self.btn_add_pc.config(bg="#1565C0"))
         
         # =========================================================================
         # SECCIÓN 1: GESTIÓN OPERATIVA Y CAJA
