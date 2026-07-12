@@ -1,6 +1,6 @@
 # 🎮 Cyber Reinoso - Smart Center Dashboard
 
-![Status](https://img.shields.io/badge/Status-Production%20Ready-00E676?style=for-the-badge)
+![Status](https://img.shields.io/badge/Status-Under%20Development-FFA000?style=for-the-badge)
 ![Python Version](https://img.shields.io/badge/Python-3.10%2B-1565C0?style=for-the-badge&logo=python&logoColor=white)
 ![SQL Server](https://img.shields.io/badge/Database-SQL%20Server%203FN-CC292B?style=for-the-badge&logo=microsoftsqlserver&logoColor=white)
 ![Architecture](https://img.shields.io/badge/Architecture-MVC%20%7C%20DAO%20%7C%20Mediator-8E24AA?style=for-the-badge)
