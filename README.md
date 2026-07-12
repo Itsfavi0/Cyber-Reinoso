@@ -1,49 +1,70 @@
 # 🎮 Cyber Reinoso - Smart Center Dashboard
 
-Un sistema empresarial integral (ERP/POS) de misión crítica, diseñado específicamente para la administración moderna, monitoreo en tiempo real y facturación de Lan Centers y arenas de eSports. Desarrollado en Python bajo el paradigma de Programación Orientada a Objetos (POO) y respaldado por una base de datos relacional altamente normalizada en SQL Server.
+![Status](https://img.shields.io/badge/Status-Production%20Ready-00E676?style=for-the-badge)
+![Python Version](https://img.shields.io/badge/Python-3.10%2B-1565C0?style=for-the-badge&logo=python&logoColor=white)
+![SQL Server](https://img.shields.io/badge/Database-SQL%20Server%203FN-CC292B?style=for-the-badge&logo=microsoftsqlserver&logoColor=white)
+![Architecture](https://img.shields.io/badge/Architecture-MVC%20%7C%20DAO%20%7C%20Mediator-8E24AA?style=for-the-badge)
 
-## Características Principales
+**Cyber Reinoso** es un sistema empresarial de administración moderna, monitoreo en tiempo real, control de inventario y facturación (POS) diseñado específicamente para Lan Centers y arenas de eSports.
 
-* **🗺️ Dashboard de Monitoreo Responsivo (UI/UX):** Panel visual interactivo construido sobre un lienzo dinámico (`Canvas`) con barras de desplazamiento (`Scrollbar`), capaz de adaptarse sin cortes visuales a pantallas de laptops o monitores amplios. Mapea en tiempo real el estado de cada estación mediante codificación por color (Disponible, Ocupada, Mantenimiento) y maneja de forma elegante los módulos vacíos o sin hardware asignado.
-* **⏱️ Billetera Virtual y Cortes Automáticos:** Sistema de cobro prepago con cálculo micro-transaccional. Los cronómetros nativos en tipografía monoespaciada auditan el consumo por minuto; si el saldo del cliente se agota, el motor del sistema ejecuta un corte automático de la sesión y libera la máquina de inmediato.
-* **💎 Motor de Fidelización Normalizado (VIP Engine):** Algoritmo de progresión de rangos (*Bronce, Plata, Oro, Diamante*) impulsado por minutos acumulados. Gracias a la estructura relacional, los porcentajes de descuento se consultan dinámicamente desde catálogos maestros, reflejando el ahorro real del cliente directamente en su boleta final.
-* **🛒 Kiosco POS Transaccional:** Módulo de punto de venta para snacks y bebidas con carrito de compras interactivo. Opera bajo una estricta arquitectura de facturación *Cabecera-Detalle* con descuento de stock en tiempo real y protección transaccional.
-* **🔧 Gestión de Infraestructura e ITSM:** Separación lógica entre el módulo físico (la mesa) y el hardware (la computadora). El módulo de administración permite realizar actualizaciones parciales de componentes (CPU/Monitor) y eliminaciones seguras sin destruir la continuidad de las estaciones en el mapa.
-* **🔒 Control de Acceso y Branding:** Sistema de seguridad con ventana de inicio de sesión (*Login*) en formato modal flotante, bloqueo emergente, validación de roles (*Administrador/Cajero*), íconos nativos (`.ico`) y renderizado de identidad visual corporativa.
+El software está construido bajo el paradigma de **Programación Orientada a Objetos (POO)** y aplica principios estrictos de **Clean Code**, **Diseño Guiado por el Dominio (DDD)** y una base de datos relacional altamente normalizada en **Microsoft SQL Server**.
 
-## Arquitectura y Tecnologías
+---
 
-El sistema está diseñado bajo el paradigma de Programación Orientada a Objetos (POO), aplicando principios de Clean Code, Programación Defensiva y el patrón de diseño DAO (Data Access Object) para la persistencia.
+## ✨ Características Principales (UI/UX & Negocio)
 
-### Backend y Lógica de Negocio (Python 3)
-* **POO Avanzada:** Uso de Abstracción (clases base abstractas `ABC` y `@abstractmethod`) y Polimorfismo en las subclases de hardware (`PC_Regular`, `PC_eSports`, `PC_StreamingVIP`) para el cálculo diferenciado de tarifas de alquiler por hora.
-* **Encapsulamiento:** Protección de datos financieros y de saldo mediante decoradores `@property`.
-* **Manejo de Errores y Seguridad:** Creación de excepciones personalizadas (ej. `SaldoInsuficienteError`) y sobrecarga de operadores mágicos (`__add__`, `__str__`). Protección estricta de usuarios del sistema (ej. *Invitado_General ID 1*) contra borrados accidentales para evitar caídas en la inicialización.
+* **🗺️ Dashboard de Monitoreo Responsivo:** Panel visual interactivo construido sobre un lienzo dinámico (`Canvas`) con barras de desplazamiento (`Scrollbar`). Mapea en tiempo real el estado operativo de cada estación mediante codificación por color (*Disponible, Ocupada, Mantenimiento*) y gestiona con elegancia los módulos vacíos o sin hardware asignado.
+* **⏱️ Billetera Virtual y Kill Switch Automático:** Sistema prepago con auditoría micro-transaccional en tiempo real. Cronómetros nativos calculan el consumo minuto a minuto; si el monedero del cliente se agota (`S/ 0.00`), el motor ejecuta un corte de sesión inmediato, liberando la máquina de forma autónoma.
+* **💎 Motor de Fidelización Normalizado (VIP Engine):** Algoritmo de progresión de rangos (*Bronce, Plata, Oro, Diamante*) impulsado por la acumulación histórica de tiempo de juego. Los porcentajes de descuento se calculan proporcionalmente reflejándose en el ahorro real del cliente dentro de su boleta de consumo.
+* **🛒 Kiosco POS Transaccional:** Módulo de punto de venta para snacks y bebidas con carrito de compras interactivo (*Card-Based*). Opera bajo una estricta arquitectura de facturación *Cabecera-Detalle*, con descuento de stock en caliente y protección transaccional.
+* **🔒 Gatekeeper de Seguridad y Branding:** Autenticación de usuarios mediante ventana modal flotante (`Toplevel`), bloqueo contra evasión de cierre (`grab_set`), validación por roles (*Administrador / Cajero*) y renderizado dinámico de identidad visual corporativa vía `Pillow (PIL)`.
 
-### Frontend y Presentación
-* **Tkinter & ttk:** Diseño modular estructurado en clases independientes (`AppCyberReinoso`, `PanelMapa`, `PanelUsuario`, `PanelAdministrador`, `VentanaLogin`) con tema oscuro nativo (*Dark Mode*).
-* **Pillow (PIL):** Procesamiento de imágenes en memoria RAM para el catálogo del kiosco y hardware del mapa. Incorpora un sistema de **Fallback Dinámico**: si la fotografía específica de una PC no existe en `assets/`, el sistema procesa automáticamente una imagen genérica basada en su categoría, evitando quiebres en la interfaz.
+---
 
-### Persistencia y Base de Datos Relacional (Microsoft SQL Server)
-* **Tercera Forma Normal (3FN):** Estructura refactorizada y libre de redundancias. Uso de tablas maestras de catálogo (`Roles`, `RangosCuenta`, `CategoriasEstacion`) que alimentan a las tablas transaccionales mediante llaves foráneas (`FK`) e índices optimizados.
-* **Integridad Referencial Híbrida:** * *Borrado en Cascada (`ON DELETE CASCADE`):* Implementado en tablas de detalle como `DetalleVentas` para la limpieza automática de registros transaccionales dependientes.
-  * *Desvinculación Lógica (`SET NULL`):* Implementado en el hardware; al eliminar una computadora física de la BD, su estación lógica queda en estado `NULL` ("Módulo Vacío") en lugar de ser eliminada, preservando el mapa física del local.
-* **SQL Dinámico y Subconsultas:** Consultas parametrizadas al vuelo en `conexion.py` para realizar `UPDATES` parciales de hardware sin sobrescribir datos existentes, y subconsultas en línea para traducir nombres de rangos a llaves foráneas en la lógica de fidelización.
-* **Transacciones ACID:** Bloques de ejecución atómicos utilizando `COMMIT` y `ROLLBACK` en las ventas del kiosco. Si una operación de venta falla a mitad de proceso, la base de datos revierte automáticamente los cobros y el inventario para evitar descuadres contables.
+## 🏛️ Arquitectura de Software y Patrones de Diseño
 
-## Stack Tecnológico y Arquitectura
+El código fuente implementa patrones de diseño esenciales para garantizar el bajo acoplamiento:
 
-* **Lenguaje:** Python 3.x
-* **Interfaz Gráfica:** Tkinter (GUI nativa)
-* **Base de Datos:** Microsoft SQL Server (vía `pyodbc`)
-* **Arquitectura:** Modelo DAO y Modularización de UI.
+* **Patrón Mediador (Mediator):** El archivo `main.py` actúa como orquestador centralizador (`AppCyberReinoso`), coordinando la comunicación asíncrona entre paneles (`PanelMapa`, `PanelUsuario`, `PanelAdministrador`) para garantizar un **bajo acoplamiento (Loose Coupling)**.
+* **Patrón DAO (Data Access Object):** La persistencia está encapsulada en `DBManager` (`conexion.py`). La capa visual desconoce por completo la sintaxis SQL, consumiendo únicamente métodos de servicio limpios y transaccionales.
+* **Polimorfismo en Tiempo Real:** El cálculo de tarifas por minuto varía dinámicamente en RAM según la subclase instanciada (`PC_Regular`, `PC_eSports`, `PC_StreamingVIP`), eliminando sentencias condicionales redundantes.
+* **Diseño Guiado por el Dominio (DDD):** Interfaz semántica enfocada en transiciones de estado e infraestructura (*"🛠️ Enviar a Mantenimiento"*, *"🔄 Alternar Estado Operativo"*) en lugar de comandos genéricos destructivos.
+
+---
+
+## ⚙️ Innovaciones Técnicas y Seguridad (Evolución del Backend)
+
+### 🛡️ Concurrencia Asíncrona sin Threads
+* **Motor de Eventos No Bloqueante:** Gestión del tiempo impulsada por el bucle de eventos nativo de Tkinter (`self.after(1000)`). Esto permite auditar más de 12 sesiones activas en paralelo, verificar stocks en el POS y refrescar indicadores visuales sin congelar la interfaz ni generar interbloqueos de memoria RAM.
+* **Tolerancia a Fallos (Fault Tolerance):** Sistema de recuperación ante caídas eléctricas o cierres forzados, preservando el estado transaccional en la base de datos.
+
+### 💾 Persistencia Relacional Avanzada (3FN, ACID & Toggles ITSM)
+* **Transacciones ACID y Bloques ROLLBACK:** Operaciones críticas como la facturación por lote en el Kiosco y el alta simultánea de infraestructura ejecutan múltiples sentencias `INSERT` en un solo bloque atómico. Si una consulta falla (ej. código duplicado o error de restricción), la base de datos revierte automáticamente toda la transacción (`ROLLBACK`), evitando descuadres contables o registros huérfanos.
+* **Borrado Lógico (Soft Delete) y Preservación de Estado:** Prohibición de la instrucción `DELETE` en transacciones comerciales e inventario. Se implementó el atributo semántico `estado` en usuarios y el retiro a `Mantenimiento` en hardware, ocultando elementos inhabilitados en el frontend mientras se custodia el 100% de la metadata en la base de datos para auditorías contables.
+* **Toggles ITSM Bi-direccionales:** Los botones de control ejecutan sentencias SQL optimizadas con `CASE WHEN` (`SET activa = CASE WHEN activa = 1 THEN 0 ELSE 1 END`). La evaluación de alternancia se realiza atómicamente dentro del motor SQL Server, eliminando la latencia de red y previniendo condiciones de carrera (*Race Conditions*).
+* **Autogeneración Alfanumérica de IDs:** Algoritmo en la capa DAO que consulta mediante subcadenas matemáticas (`CAST(SUBSTRING(...) AS INT)`) el código de hardware más alto registrado, le suma una unidad y formatea la nueva cadena con ceros a la izquierda (`PC-013`) para inyectarla automáticamente en el formulario en modo `readonly`.
+
+---
+
+## 🛠️ Stack Tecnológico
+
+| Componente | Tecnología / Librería | Descripción |
+| :--- | :--- | :--- |
+| **Lenguaje Core** | Python 3.10+ | Lógica de negocio, POO avanzada y manejo de eventos. |
+| **Interfaz Gráfica** | Tkinter & `ttk` | Renderizado nativo de ventanas modales, Canvas y grillas Dark Mode. |
+| **Base de Datos** | Microsoft SQL Server | Motor relacional de misión crítica normalizado en 3FN. |
+| **Conectividad DB** | `pyodbc` (ODBC Driver 17/18) | Puente de comunicación y ejecución de consultas parametrizadas. |
+| **Procesamiento de Assets** | `Pillow (PIL)` | Carga, redimensionamiento y fallback dinámico de imágenes en RAM. |
+| **Generación de Documentos** | `reportlab` | Motor de exportación de reportes de caja e informes de cierre en PDF. |
+
+---
 
 ## 📋 Requisitos Previos
 
 Para desplegar el sistema en un entorno local o de producción, se requiere:
 * **Python 3.10** o superior.
 * **Microsoft SQL Server** (2019/2022) y **SQL Server Management Studio (SSMS)**.
-* **ODBC Driver 17 for SQL Server** instalado en el sistema operativo.
+* **ODBC Driver 17 or 18 for SQL Server** instalado en el sistema operativo.
 
 ### Librerías de Python
 Ejecuta el siguiente comando para instalar las dependencias necesarias:
@@ -88,29 +109,32 @@ pip install pyodbc Pillow
     ```
 
 ## 📁 Estructura del Proyecto
-El sistema aplica principios de Clean Architecture y separación de responsabilidades, dividiendo el monolito inicial en módulos independientes:
+
+El software se divide estructuralmente por capas funcionales:
 
 ```text
 cyber-reinoso/
+│
 ├── assets/                    # Identidad visual (.ico, .png), logotipos y fotos de hardware
-├── modulos_ui/                # Componentes modulares de la interfaz gráfica
-│   ├── panel_kiosco.py        # POS, carrito de compras y control de stock
+├── modulos_ui/                # Capa de Presentación (Vistas modulares desacopladas)
 │   ├── panel_mapa.py          # Renderizado responsivo de grilla y tooltips de hardware
-│   ├── panel_usuario.py       # Tarjeta de cliente, saldos y fidelización VIP
-│   ├── panel_administrador.py # ITSM, CRUD de hardware y gestión de usuarios
-│   └── ventana_login.py       # Modal flotante de seguridad y autenticación
-├── conexion.py                # Data Access Object (DAO), JOINs 3FN y transacciones ACID
-├── modelos.py                 # Clases abstractas (POO), reglas de negocio y excepciones
-├── estructura_db.sql          # Script de despliegue SQL Server (Tablas 3FN y Seed Data)
+│   ├── panel_usuario.py       # CRM de atención al cliente, monedero y estado de cuenta
+│   ├── panel_kiosco.py        # POS transaccional, carrito Card-Based y control de stock
+│   ├── panel_administrador.py # ITSM, Toggles de estado, alta de hardware y CRUD
+│   ├── ventana_login.py       # Gatekeeper modal de seguridad y autenticación de roles
+│   └── ventanas_emergentes.py # Modales para altas rápidas, recargas y reportes financieros
+│
+├── conexion.py                # Capa DAO (Conexión pyodbc, JOINs 3FN, ACID y Soft Delete)
+├── modelos.py                 # Capa de Negocio (Clases POO, Polimorfismo y Excepciones)
+├── estructura_db.sql          # Script DDL/DML para SQL Server (Tablas 3FN y Seed Data)
 └── main.py                    # Orquestador principal y bucle de cronómetros
-```
 
 El proyecto sigue una arquitectura limpia y desacoplada en capas, dividiendo de forma estricta la interfaz gráfica, la lógica de negocio y la persistencia de datos:
 
-* **`main.py`:** Actúa como el Orquestador principal de la aplicación. Inicializa el ciclo de Tkinter, gestiona el estado de las sesiones concurrentes de los gamers y controla el hilo del reloj global para los cortes automáticos de tiempo.
-* **`modelos.py`:** Capa de Negocio (Domain Model). Contiene las entidades puras de la aplicación (`Usuario`, `Sesion`) y aplica polimorfismo para calcular las tarifas dinámicas según las subclases especializadas de `EstacionTrabajo`.
-* **`conexion.py`:** Capa de Datos (Patrón DAO). Centraliza, encapsula y blinda todas las transacciones SQL hacia Microsoft SQL Server, abstrayendo los `INNER JOINs` y subconsultas de la lógica de presentación.
-* **`estructura_db.sql`:** Scripts relacionales normalizados en Tercera Forma Normal (3FN). Contiene las restricciones de integridad, llaves primarias/foráneas, automatización transaccional y los datos semilla esenciales.
+* **`main.py`:** Punto de entrada del sistema. Inicializa el ciclo de eventos de Tkinter, gestiona el estado transaccional de las sesiones y ejecuta la vigilancia del reloj global para los cortes prepago.
+* **`modelos.py`:** Contiene las entidades puras del dominio (`Usuario`, `Sesion`) y aplica jerarquía de clases con sobrecarga de operadores mágicos (`__add__`, `__str__`).
+* **`conexion.py`:** Encapsula la persistencia SQL, blindando el sistema contra inyecciones y gestionando cursores, `JOINs` condicionales y reversiones automáticas ante errores en tiempo de ejecución.
+* **`estructura_db.sql`:** Script relacional autoejecutable. Crea las tablas maestras, índices, restricciones de llave foránea (`FK`) con borrado en cascada para detalles de venta y desvinculación lógica (`SET NULL`) para infraestructura retiradas.
 * **`assets/`:** Repositorio centralizado de recursos estáticos del sistema. Almacena la identidad visual corporativa de la marca (`logo.ico`, `logo_cyber.png`) y el catálogo fotográfico dinámico para el hardware del mapa de PCs.
 * **`modulos_ui/`:** Componentes visuales y pantallas del frontend, completamente desacoplados de la lógica central del backend:
   * `panel_mapa.py`: Renderizado responsivo de la grilla de estaciones de juego. Implementa un canvas scrolleable y lógica tolerante a fallos para módulos vacíos (hardware desvinculado).
