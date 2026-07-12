@@ -132,9 +132,10 @@ class EstacionTrabajo(ABC):
     # Funciona como un contador estático en memoria RAM de cuántas máquinas se han mapeado al iniciar.
     total_pcs_registradas = 0
     
-    def __init__(self, id_estacion : int, codigo_pc: str, especificaciones=None):
+    def __init__(self, id_estacion : int, codigo_pc: str, tarifa_hora: float, especificaciones=None):
         self.id_estacion = id_estacion
         self.codigo_pc = codigo_pc
+        self.tarifa_hora = float(tarifa_hora)
         self.__estado = "Disponible"
         
         # 'or {}'. Si 'especificaciones' llega vacío (None),
@@ -178,44 +179,44 @@ class EstacionTrabajo(ABC):
 # SUBCLASES ESPECIALIZADAS (Aplicación de Polimorfismo)
 # =========================================================================
 class PC_Regular(EstacionTrabajo):
-    def __init__(self, id_estacion, codigo_pc, especificaciones=None):
+    def __init__(self, id_estacion, codigo_pc, tarifa_hora, especificaciones=None):
         # 'super().__init__' invoca al constructor de la clase padre (EstacionTrabajo)
         # para inicializar los atributos base sin duplicar código.
-        super().__init__(id_estacion, codigo_pc, especificaciones)
+        super().__init__(id_estacion, codigo_pc, tarifa_hora, especificaciones)
 
     @property
     def categoria(self) -> str:
         return "Regular"
     
     def calcular_tarifa(self, minutos) -> float:
-        """POLIMORFISMO: PC_Regular ejecuta el cálculo bajo su tarifa base de S/ 2.00 la hora."""
-        tarifa_minuto = 2.00 / 60
+        """POLIMORFISMO: PC_Regular ejecuta el cálculo bajo su tarifa dinámica configurada en la BD."""
+        tarifa_minuto = self.tarifa_hora / 60
         return round(minutos * tarifa_minuto, 2)
 
 class PC_eSports(EstacionTrabajo):
-    def __init__(self, id_estacion, codigo_pc, especificaciones=None):
-        super().__init__(id_estacion, codigo_pc, especificaciones)
+    def __init__(self, id_estacion, codigo_pc, tarifa_hora, especificaciones=None):
+        super().__init__(id_estacion, codigo_pc, tarifa_hora, especificaciones)
 
     @property
     def categoria(self) -> str:
         return "eSports"
     
     def calcular_tarifa(self, minutos) -> float:
-        """POLIMORFISMO: PC_eSports ejecuta el cálculo bajo su tarifa de gama media de S/ 3.00 la hora."""
-        tarifa_minuto = 3.00 / 60
+        """POLIMORFISMO: PC_eSports ejecuta el cálculo bajo su tarifa dinámica configurada en la BD."""
+        tarifa_minuto = self.tarifa_hora / 60
         return round(minutos * tarifa_minuto, 2)
 
 class PC_StreamingVIP(EstacionTrabajo):
-    def __init__(self, id_estacion, codigo_pc, especificaciones=None):
-        super().__init__(id_estacion, codigo_pc, especificaciones)
+    def __init__(self, id_estacion, codigo_pc, tarifa_hora, especificaciones=None):
+        super().__init__(id_estacion, codigo_pc, tarifa_hora, especificaciones)
 
     @property
     def categoria(self) -> str:
         return "Streaming VIP"
     
     def calcular_tarifa(self, minutos) -> float:
-        """POLIMORFISMO: PC_StreamingVIP ejecuta el cálculo bajo su tarifa premium de S/ 5.00 la hora."""
-        tarifa_minuto = 5.00 / 60
+        """POLIMORFISMO: PC_StreamingVIP ejecuta el cálculo bajo su tarifa dinámica configurada en la BD."""
+        tarifa_minuto = self.tarifa_hora / 60
         return round(minutos * tarifa_minuto, 2)
 
 # =========================================================================

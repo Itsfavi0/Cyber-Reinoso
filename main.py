@@ -10,6 +10,7 @@ from conexion import DBManager
 from modelos import Usuario, PC_Regular, PC_eSports, PC_StreamingVIP, Sesion, SaldoInsuficienteError
 from datetime import datetime
 from modulos_ui.ventana_login import VentanaLogin
+from modulos_ui.ventanas_emergentes import AlertaCorteAutomatico
 from modulos_ui.panel_mapa import PanelMapa
 from modulos_ui.panel_usuario import PanelUsuario
 from modulos_ui.panel_administrador import PanelAdministrador
@@ -72,14 +73,15 @@ class AppCyberReinoso(tk.Tk):
         for fila in datos_db:
             categoria = fila["categoria"]
             specs = fila.get("specs", {})
+            tarifa_hora = fila.get("tarifa_hora", 2.00) # Recupera tarifa de la base de datos
             
-            # Según el texto de la BD, instanciamos la clase hija correcta.
+            # Según el texto de la BD, instanciamos la clase hija correcta pasándole su tarifa.
             if categoria == "Streaming VIP":
-                pc = PC_StreamingVIP(fila["id_estacion"], fila["codigo_pc"], specs)
+                pc = PC_StreamingVIP(fila["id_estacion"], fila["codigo_pc"], tarifa_hora, specs)
             elif categoria == "eSports":
-                pc = PC_eSports(fila["id_estacion"], fila["codigo_pc"], specs)
+                pc = PC_eSports(fila["id_estacion"], fila["codigo_pc"], tarifa_hora, specs)
             else:
-                pc = PC_Regular(fila["id_estacion"], fila["codigo_pc"], specs)
+                pc = PC_Regular(fila["id_estacion"], fila["codigo_pc"], tarifa_hora, specs)
                 
             pc.estado = fila["estado_actual"]
             self.lista_pcs.append(pc)
@@ -211,9 +213,16 @@ class AppCyberReinoso(tk.Tk):
                 # 3. Suma de tiempo en RAM. Retorna True únicamente si cruzó una barrera de horas y cambió de rango.
                 subio_rango = usuario.agregar_minutos_jugados(minutos_jugados)
                 
-                # 4. PERSISTENCIA ACID: Sincroniza el monedero y el cierre de sesión en SQL Server.
-                db.actualizar_progreso_usuario(usuario.id_usuario, usuario.saldo_billetera, usuario.rango_cuenta, usuario.minutos_acumulados)
-                db.actualizar_fin_sesion(sesion_actual.id_sesion, sesion_actual.hora_fin, sesion_actual.monto_cobrado)
+                # 4. PERSISTENCIA ACID: Sincroniza el monedero y el cierre de sesión en un único bloque atómico en SQL Server.
+                db.finalizar_sesion_transaccional(
+                    id_sesion=sesion_actual.id_sesion,
+                    id_usuario=usuario.id_usuario,
+                    saldo=usuario.saldo_billetera,
+                    rango=usuario.rango_cuenta,
+                    minutos=usuario.minutos_acumulados,
+                    hora_fin=sesion_actual.hora_fin,
+                    monto_cobrado=sesion_actual.monto_cobrado
+                )
                 
                 # 5. GENERACIÓN DE BOLETA COMERCIAL
                 if not es_corte_automatico:
@@ -242,12 +251,8 @@ class AppCyberReinoso(tk.Tk):
                     
                     messagebox.showinfo("Sesión Finalizada - Boleta", texto_boleta, parent=self)
                 else:
-                    # NOTIFICACIÓN DE KILL SWITCH
-                    messagebox.showwarning(
-                        "Corte Automático",
-                        f"Se agotó el saldo de {usuario.alias_gamer} en {maquina_seleccionada.codigo_pc}.\nLa sesión ha sido finalizada por el sistema.",
-                        parent=self
-                    )
+                    # NOTIFICACIÓN DE KILL SWITCH NO BLOQUEANTE
+                    AlertaCorteAutomatico(self, usuario.alias_gamer, maquina_seleccionada.codigo_pc)
                 
                 # RECOMPENSA UX: Alerta festiva si el cliente subió de categoría en este turno.
                 if subio_rango:
@@ -284,8 +289,10 @@ class AppCyberReinoso(tk.Tk):
                 # MATEMÁTICA DE FORMATO: Convierte los segundos en formato estándar HH:MM:SS de dos dígitos (00:00:00).
                 self.mapa_ui.labels_cronometros[id_estacion].config(text=f"⏱️ {segundos // 3600:02d}:{(segundos % 3600) // 60:02d}:{segundos % 60:02d}")
                 
-                # EVALUACIÓN DE CORTE (Kill Switch): Si el costo del próximo minuto es mayor al saldo, corta de golpe.
-                if sesion.estacion.calcular_tarifa((segundos // 60) + 1) > sesion.usuario.saldo_billetera:
+                # EVALUACIÓN DE CORTE (Kill Switch): Si el costo del próximo minuto (con su descuento VIP aplicado) es mayor al saldo, corta de golpe.
+                tarifa_proximo_minuto = sesion.estacion.calcular_tarifa((segundos // 60) + 1)
+                tarifa_con_descuento = tarifa_proximo_minuto * (1.0 - sesion.usuario.porcentaje_descuento)
+                if tarifa_con_descuento > sesion.usuario.saldo_billetera:
                     self.cerrar_sesion(sesion.estacion, es_corte_automatico=True)
         
         # RECURSIÓN CONTROLADA: Le ordena a Tkinter que vuelva a invocar a esta misma función exactamente dentro de 1000 milisegundos (1 segundo).

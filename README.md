@@ -21,6 +21,17 @@ El software está construido bajo el paradigma de **Programación Orientada a Ob
 
 ---
 
+## 🚀 Correcciones y Optimizaciones Recientes (Julio 2026)
+
+Se han implementado mejoras críticas de consistencia, robustez y estabilidad en el sistema:
+
+* **⚡ Cierre de Sesión Atómico (ACID):** Se unificó la actualización del progreso del usuario (minutos acumulados y rango de cuenta) junto con el sellado de la sesión en un único bloque de transacción atómica (`finalizar_sesion_transaccional` en `conexion.py`), garantizando la integridad de datos contables y de fidelización ante cualquier interrupción o caída de red.
+* **🛍️ Consistencia Financiera en Kiosco:** Se reestructuró el orquestador de pagos de snacks en el POS para validar y persistir la compra en SQL Server *antes* de impactar las finanzas en la memoria RAM de la aplicación. Si el commit de la base de datos falla, el saldo del gamer se mantiene intacto, eliminando la posibilidad de discrepancias de saldo.
+* **⏱️ Tarifación VIP Dinámica:** Se corrigió el bug de cálculo en el motor del Kill Switch (`actualizar_cronometros` en `main.py`). Ahora proyecta y evalúa correctamente el costo del próximo minuto aplicando el porcentaje de descuento VIP según el rango del cliente, previniendo desconexiones forzadas prematuras.
+* **🔔 Alertas de Corte No Bloqueantes:** Se reemplazó el uso de diálogos modales restrictivos por `AlertaCorteAutomatico` en `ventanas_emergentes.py`, el cual no captura de forma absoluta el foco del mouse y teclado (`grab_set` desactivado). Esto evita que el ciclo de eventos asíncrono y los contadores de tiempo de las demás computadoras activas se congelen al dispararse un corte de energía o saldo.
+
+---
+
 ## 🏛️ Arquitectura de Software y Patrones de Diseño
 
 El código fuente implementa patrones de diseño esenciales para garantizar el bajo acoplamiento:

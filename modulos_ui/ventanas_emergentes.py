@@ -344,3 +344,44 @@ class VentanaNuevaEstacion(tk.Toplevel):
             self.destroy()
         else:
             messagebox.showerror("Error de Inserción", "No se pudo registrar la PC en la base de datos.", parent=self)
+
+
+# =========================================================================
+# SUB-MODAL 5: ALERTA DE CORTE AUTOMÁTICO NO BLOQUEANTE (NON-BLOCKING TOAST)
+# =========================================================================
+class AlertaCorteAutomatico(tk.Toplevel):
+    def __init__(self, parent, usuario_gamer, codigo_pc):
+        """
+        CONSTRUCTOR DE ALERTA NO BLOQUEANTE:
+        A diferencia de un tk.messagebox, esta ventana modal de aviso no utiliza grab_set(),
+        lo que permite que el bucle asíncrono y los demás relojes continúen su curso.
+        """
+        super().__init__(parent)
+        self.title("⚡ Corte de Conexión - Cyber Reinoso")
+        self.geometry("400x220")
+        self.config(bg=BG_BASE)
+        self.resizable(False, False)
+        
+        # Algoritmo de centrado simétrico en pantalla
+        self.update_idletasks()
+        ancho = self.winfo_width()
+        alto = self.winfo_height()
+        x = (self.winfo_screenwidth() // 2) - (ancho // 2)
+        y = (self.winfo_screenheight() // 2) - (alto // 2)
+        self.geometry(f"{ancho}x{alto}+{x}+{y}")
+        
+        self.construir_interfaz(usuario_gamer, codigo_pc)
+        
+    def construir_interfaz(self, usuario_gamer, codigo_pc):
+        card = tk.Frame(self, bg=BG_PANEL, highlightbackground="#FF1744", highlightthickness=2, padx=20, pady=20)
+        card.pack(expand=True, fill=tk.BOTH, padx=12, pady=12)
+        
+        tk.Label(card, text="⚠️ CORTE AUTOMÁTICO", font=("Segoe UI", 12, "bold"), bg=BG_PANEL, fg="#FF1744").pack(pady=(0, 10))
+        
+        mensaje = f"Se agotó el saldo del gamer {usuario_gamer} en la {codigo_pc}.\nLa sesión ha sido finalizada automáticamente por el sistema."
+        tk.Label(card, text=mensaje, font=("Segoe UI", 10), bg=BG_PANEL, fg=TEXTO_MAIN, justify="center", wraplength=340).pack(pady=(0, 15))
+        
+        btn_ok = tk.Button(card, text="Entendido", font=("Segoe UI", 10, "bold"), bg="#FF1744", fg="white", relief="flat", pady=6, cursor="hand2", command=self.destroy)
+        btn_ok.pack(fill=tk.X)
+        btn_ok.bind("<Enter>", lambda e: btn_ok.config(bg="#FF5252"))
+        btn_ok.bind("<Leave>", lambda e: btn_ok.config(bg="#FF1744"))

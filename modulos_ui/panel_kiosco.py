@@ -286,18 +286,13 @@ class VentanaTienda(tk.Toplevel):
 
     def procesar_pago_lote(self):
         """MÉTODO DE DISPARO TRANSACCIONAL (ORQUESTADOR DE COMPRA)"""
-        # Paso 1: Impacta las finanzas del objeto Usuario en memoria RAM
-        self.usuario_actual.descontar_saldo(self.total_carrito)
-        
-        # Paso 2: Sincroniza el monedero en la base de datos de forma inmediata
         db = DBManager()
-        db.actualizar_saldo_usuario(self.usuario_actual.id_usuario, self.usuario_actual.saldo_billetera)
         
-        # Paso 3: Identificación ITSM. Rastrea qué cajero está operando la caja del POS
-        id_cajero = self.master.empleado_actual["id_empleado"] if hasattr(self.master, "empleado_actual") else None
+        # Paso 1: Identificación ITSM. Rastrea qué cajero está operando la caja del POS
+        id_cajero = self.master.empleado_actual["id_empleado"] if (hasattr(self.master, "empleado_actual") and self.master.empleado_actual) else 1
         
-        # Paso 4: Impacto en bloque hacia SQL Server. 
-        # Envía la colección del carrito para ejecutar la transacción ACID de Cabecera-Detalle y Stock.
+        # Paso 2: Impacto en bloque hacia SQL Server. 
+        # Envía la colección del carrito para ejecutar la transacción ACID de Cabecera-Detalle, Stock y Billetera.
         exito = db.procesar_compra_kiosco(
             id_usuario=self.usuario_actual.id_usuario,
             id_empleado=id_cajero,
@@ -305,11 +300,13 @@ class VentanaTienda(tk.Toplevel):
             carrito=self.carrito
         )
         
-        # Paso 5: Evaluación del resultado de persistencia
+        # Paso 3: Evaluación del resultado de persistencia y consistencia en RAM
         if exito:
+            # Paso 4: Solo si la base de datos se actualizó correctamente, impactamos las finanzas en RAM
+            self.usuario_actual.descontar_saldo(self.total_carrito)
             messagebox.showinfo("Compra Exitosa", f"Transacción completada.\nTotal cobrado: S/ {self.total_carrito:.2f}\nNuevo saldo: S/ {self.usuario_actual.saldo_billetera:.2f}", parent=self)
         else:
-            messagebox.showerror("Error de Transacción", "Hubo un problema registrando la venta en la Base de Datos. El saldo pudo verse afectado.", parent=self)
+            messagebox.showerror("Error de Transacción", "Hubo un problema registrando la venta en la Base de Datos. No se realizó ningún cobro.", parent=self)
         
         # Delegado de refresco: Alertas a las demás pantallas para pintar el nuevo saldo y stock decrementado
         if self.callback_actualizar_panel:

@@ -65,7 +65,8 @@ class DBManager:
                     # - LEFT JOIN es la clave de infraestructura: trae todas las mesas, tengan o no un hardware físico asignado.
                     consulta = """
                         SELECT e.id_estacion, e.codigo_pc, cat.nombre_categoria, e.estado_actual,
-                               c.procesador, c.memoria_ram, c.tarjeta_grafica, c.monitor, c.mouse
+                               c.procesador, c.memoria_ram, c.tarjeta_grafica, c.monitor, c.mouse,
+                               cat.tarifa_hora
                         FROM Estaciones e
                         INNER JOIN CategoriasEstacion cat ON e.id_categoria = cat.id_categoria
                         LEFT JOIN Computadoras c ON e.codigo_pc = c.codigo_pc
@@ -81,6 +82,7 @@ class DBManager:
                             "codigo_pc" : fila[1],
                             "categoria" : fila[2],
                             "estado_actual" : fila[3],
+                            "tarifa_hora" : float(fila[9]),
                             "specs" : {
                                 "procesador" : fila[4],
                                 "ram": fila[5],
@@ -360,6 +362,44 @@ class DBManager:
             finally:
                 conn.close()
         return exito
+        
+    def finalizar_sesion_transaccional(self, id_sesion, id_usuario, saldo, rango, minutos, hora_fin, monto_cobrado):
+        """
+        CIERRE DE SESIÓN TRANSACCIONAL (ACID):
+        Actualiza el progreso del usuario y sella la sesión en un solo bloque atómico.
+        """
+        conn = self.conectar()
+        exito = False
+        if conn:
+            try:
+                with conn.cursor() as cursor:
+                    # 1. Actualiza progreso del usuario
+                    consulta_usr = """
+                        UPDATE Usuarios 
+                        SET saldo_billetera = ?, 
+                            id_rango = (SELECT id_rango FROM RangosCuenta WHERE nombre_rango = ?), 
+                            minutos_acumulados = ? 
+                        WHERE id_usuario = ?
+                    """
+                    cursor.execute(consulta_usr, (saldo, rango, minutos, id_usuario))
+                    
+                    # 2. Sella el cierre de la sesión
+                    consulta_ses = """
+                        UPDATE Sesiones
+                        SET hora_fin = ?, monto_cobrado = ?
+                        WHERE id_sesion = ?
+                    """
+                    cursor.execute(consulta_ses, (hora_fin, monto_cobrado, id_sesion))
+                    
+                    conn.commit()
+                    exito = True
+                    print(f"Transacción de cierre exitosa | Sesión: {id_sesion} | Usuario: {id_usuario}")
+            except pyodbc.Error as e:
+                conn.rollback()
+                print(f"Error crítico al finalizar sesión transaccional (ROLLBACK aplicado): {e}")
+            finally:
+                conn.close()
+        return exito
     
     def obtener_sesiones_activas(self):
         """SISTEMA TOLERANTE A APAGONES: Recupera sesiones colgadas (hora_fin IS NULL) al abrir la app"""
@@ -391,15 +431,23 @@ class DBManager:
     def procesar_compra_kiosco(self, id_usuario, id_empleado, total_venta, carrito):
         """
         TRANSACCIÓN PURA CON ATOMICIDAD (ACID):
-        Garantiza que la Cabecera, el Detalle y la reducción de Stock ocurran como un bloque único.
-        Si una sola de las 10 golosinas falla por falta de stock, TODO se anula, protegiendo las cuentas.
+        Garantiza que la Cabecera, el Detalle, la reducción de Stock y el cobro del saldo
+        ocurran como un bloque único. Si algo falla, TODO se anula, protegiendo las cuentas.
         """
         conn = self.conectar()
         exito = False
         if conn:
             try:
                 with conn.cursor() as cursor:
-                    # 1. Insertamos la Cabecera de venta y capturamos el ID del ticket
+                    # 1. Descontamos el saldo de la billetera del usuario en la Base de Datos
+                    consulta_billetera = """
+                        UPDATE Usuarios 
+                        SET saldo_billetera = saldo_billetera - ? 
+                        WHERE id_usuario = ?
+                    """
+                    cursor.execute(consulta_billetera, (total_venta, id_usuario))
+
+                    # 2. Insertamos la Cabecera de venta y capturamos el ID del ticket
                     consulta_cabecera = """
                         INSERT INTO Ventas (id_usuario, id_empleado, monto_total)
                         OUTPUT INSERTED.id_venta
@@ -408,21 +456,21 @@ class DBManager:
                     cursor.execute(consulta_cabecera, (id_usuario, id_empleado, total_venta))
                     id_venta = cursor.fetchone()[0]
                     
-                    # 2. Consultas preparadas optimizadas
+                    # 3. Consultas preparadas optimizadas
                     consulta_detalle = """
                         INSERT INTO DetalleVentas (id_venta, id_producto, cantidad, precio_unitario, subtotal)
                         VALUES (?, ?, ?, ?, ?)
                     """
                     consulta_stock = "UPDATE Productos SET stock = stock - ? WHERE id_producto = ?"
                     
-                    # 3. Iteración en memoria RAM del carrito de compras
+                    # 4. Iteración en memoria RAM del carrito de compras
                     # carrito.items() descompone el diccionario en (clave, datos) para recorrerlo en el bucle.
                     for id_prod, datos in carrito.items():
                         subtotal = datos["precio"] * datos["cantidad"]
                         cursor.execute(consulta_detalle, (id_venta, id_prod, datos["cantidad"], datos["precio"], subtotal))
                         cursor.execute(consulta_stock, (datos["cantidad"], id_prod))
                     
-                    # 4. SELLADO TRANSACCIONAL: Si la RAM llegó limpia aquí, impactamos el disco de SQL Server de golpe.
+                    # 5. SELLADO TRANSACCIONAL: Si la RAM llegó limpia aquí, impactamos el disco de SQL Server de golpe.
                     conn.commit()
                     exito = True
                     print(f"Transacción exitosa | Ticket #{id_venta} | Cajero ID: {id_empleado}")
