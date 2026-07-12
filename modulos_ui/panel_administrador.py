@@ -39,23 +39,7 @@ class PanelAdministrador(tk.LabelFrame):
 
         db = DBManager()
         
-        # Botón: Registrar Nuevo Usuario
-        self.btn_registro = tk.Button(
-            self, 
-            text="➕ Registrar Nuevo Gamer", 
-            font=("Segoe UI", 10, "bold"), 
-            bg="#6A1B9A", 
-            fg="white", 
-            relief="flat", 
-            pady=6, 
-            cursor="hand2",
-            command=lambda: VentanaRegistro(self.controlador, callback_actualizar=self.controlador.refrescar_interfaz)
-        )
-        self.btn_registro.pack(fill=tk.X, pady=(0, 8))
-        self.btn_registro.bind("<Enter>", lambda e: self.btn_registro.config(bg="#8E24AA"))
-        self.btn_registro.bind("<Leave>", lambda e: self.btn_registro.config(bg="#6A1B9A"))
-
-        # --- NUEVO: BOTÓN AÑADIR ESTACIÓN ---
+        # --- BOTÓN AÑADIR ESTACIÓN ---
         self.btn_add_pc = tk.Button(
             self, 
             text="🖥️ Añadir Nueva PC / Mesa", 

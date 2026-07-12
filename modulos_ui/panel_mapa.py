@@ -166,7 +166,7 @@ class PanelMapa(tk.Frame):
             ruta_final = None
             if not es_modulo_vacio:
                 ruta_especifica = f"assets/{pc.codigo_pc}.png"
-                ruta_default = f"assets/{pc.categoria.replace(' ', '_').lower()}.png"
+                ruta_default = f"assets/imagen_pc_defecto.png"
                 ruta_final = ruta_especifica if os.path.exists(ruta_especifica) else ruta_default if os.path.exists(ruta_default) else None
             
             if ruta_final:

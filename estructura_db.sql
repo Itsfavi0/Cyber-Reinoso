@@ -34,6 +34,13 @@ CREATE TABLE CategoriasEstacion (
 )
 GO
 
+CREATE TABLE TiposEstacion (
+    id_tipo INT IDENTITY(1,1) PRIMARY KEY,
+    nombre_tipo VARCHAR(50) NOT NULL UNIQUE,
+    descripcion VARCHAR(150) NULL
+)
+GO
+
 
 -- =========================================================
 -- 2. TABLAS PRINCIPALES (ENTIDADES)
@@ -85,11 +92,13 @@ GO
 
 CREATE TABLE Estaciones (
     id_estacion INT IDENTITY(1,1) PRIMARY KEY,
+    id_tipo INT NOT NULL DEFAULT 1,
     codigo_pc VARCHAR(20) NULL,
     id_categoria INT NOT NULL,
     estado_actual VARCHAR(20) NOT NULL DEFAULT 'Disponible',
     estado BIT NOT NULL DEFAULT 1,
 
+    FOREIGN KEY (id_tipo) REFERENCES TiposEstacion(id_tipo),
     FOREIGN KEY (codigo_pc) REFERENCES Computadoras(codigo_pc),
     FOREIGN KEY (id_categoria) REFERENCES CategoriasEstacion(id_categoria)
 )
@@ -160,6 +169,14 @@ VALUES
 ('Regular', 2.00),
 ('eSports', 3.00),
 ('Streaming VIP', 5.00)
+GO
+
+INSERT INTO TiposEstacion (nombre_tipo, descripcion) VALUES 
+('PC Escritorio', 'Estación tradicional con torre, monitor y periféricos'),
+('Simulador de Carreras', 'Estructura con volante Direct Drive, pedales y butaca'),
+('Consola PS5', 'Módulo de sala con sofá y televisor 4K'),
+('Sala VR', 'Espacio libre de obstáculos con sensores de movimiento y visor Oculus/Meta'),
+('Cabina Streamer', 'Habitación insonorizada con doble monitor, cámara 4K y micrófono condensador');
 GO
 
 -- Personal (FKs: 1 = Admin, 2 = Cajero)
