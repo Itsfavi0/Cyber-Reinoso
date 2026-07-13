@@ -71,6 +71,7 @@ class VentanaRegistro(tk.Toplevel):
         self.btn_guardar = tk.Button(card, text="Guardar Gamer", font=("Segoe UI", 11, "bold"), bg="#6A1B9A", fg="white", relief="flat", activebackground="#4A148C", activeforeground="white", pady=8, cursor="hand2")
         self.btn_guardar.pack(fill=tk.X, pady=(10, 0))
         self.btn_guardar.config(command=self.guardar)
+        self.bind("<Return>", lambda event: self.guardar())
         
         # Efecto Hover reactivo para las animaciones del botón
         self.btn_guardar.bind("<Enter>", lambda e: self.btn_guardar.config(bg="#8E24AA"))
@@ -155,6 +156,7 @@ class VentanaRecarga(tk.Toplevel):
         self.btn_recargar = tk.Button(card, text="Confirmar Recarga", font=("Segoe UI", 11, "bold"), bg="#2E7D32", fg="white", relief="flat", activebackground="#1B5E20", activeforeground="white", pady=8, cursor="hand2")
         self.btn_recargar.pack(fill=tk.X)
         self.btn_recargar.config(command=self.procesar_recarga)
+        self.bind("<Return>", lambda event: self.procesar_recarga())
         
         self.btn_recargar.bind("<Enter>", lambda e: self.btn_recargar.config(bg="#388E3C"))
         self.btn_recargar.bind("<Leave>", lambda e: self.btn_recargar.config(bg="#2E7D32"))
@@ -317,6 +319,7 @@ class VentanaNuevaEstacion(tk.Toplevel):
         
         self.btn_guardar = tk.Button(card, text="🖥️ Inaugurar Estación", font=("Segoe UI", 11, "bold"), bg="#1976D2", fg="white", relief="flat", activebackground="#0D47A1", activeforeground="white", pady=8, cursor="hand2", command=self.guardar)
         self.btn_guardar.pack(fill=tk.X)
+        self.bind("<Return>", lambda event: self.guardar())
         
         self.btn_guardar.bind("<Enter>", lambda e: self.btn_guardar.config(bg="#1E88E5"))
         self.btn_guardar.bind("<Leave>", lambda e: self.btn_guardar.config(bg="#1976D2"))
