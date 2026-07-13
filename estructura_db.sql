@@ -183,8 +183,8 @@ GO
 -- Personal (FKs: 1 = Admin, 2 = Cajero)
 INSERT INTO Empleados (nombre, usuario, clave, id_rol) 
 VALUES 
-('Admin', 'admin', '1234', 1),
-('Cajero', 'cajero', '0000', 2)
+('Admin_Cyber', 'admin', '1234', 1),
+('Ian Sevillano', 'cajero', '0000', 2)
 GO
 
 -- Gamers (FKs: 1 = Bronce, 2 = Plata, 3 = Oro, 4 = Diamante)

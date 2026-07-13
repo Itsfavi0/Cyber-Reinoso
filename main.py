@@ -48,8 +48,9 @@ class AppCyberReinoso(tk.Tk):
         
         self.config(bg=BG_BASE)
         
-        # CONTROL DE ACCESO: Dispara el modal flotante de seguridad. El código se detiene aquí hasta que el usuario se autentique.
-        VentanaLogin(self)
+        # Dispara el modal flotante de seguridad. El código se detiene aquí hasta que el usuario se autentique.
+        login_window = VentanaLogin(self)
+        self.wait_window(login_window)
         
         # INICIALIZACIÓN DEL SISTEMA: Si el Login pasó, extraemos la infraestructura relacional de SQL.
         self.cargar_datos_iniciales()
@@ -94,7 +95,7 @@ class AppCyberReinoso(tk.Tk):
                             rango_cuenta=datos_usr["rango_cuenta"],
                             saldo_billetera=datos_usr["saldo_billetera"],
                             minutos_acumulados=datos_usr.get("minutos_acumulados", 0),
-                            estado=datos_usr.get("activo", 1)
+                            estado=datos_usr.get("estado", 1)
         )
         
         # 3. RECUPERACIÓN ANTI-APAGONES (Fault Tolerance):
@@ -126,9 +127,12 @@ class AppCyberReinoso(tk.Tk):
         self.contenedor_principal = tk.Frame(self, bg=BG_BASE)
         self.contenedor_principal.pack(expand=True, fill="both", padx=10, pady=10)
         
-        # Panel Izquierdo: Gestión de Infraestructura ITSM y CRUD
-        self.admin_ui = PanelAdministrador(self.contenedor_principal, controlador=self, width=240)
-        self.admin_ui.pack(side="left", fill="y", padx=10, pady=10)
+        # Panel Izquierdo: Gestión de Infraestructura ITSM y CRUD (Solo para el rol Administrador)
+        if self.empleado_actual and self.empleado_actual.get("rol") == "Administrador":
+            self.admin_ui = PanelAdministrador(self.contenedor_principal, controlador=self, width=240)
+            self.admin_ui.pack(side="left", fill="y", padx=10, pady=10)
+        else:
+            self.admin_ui = None
         
         # Panel Central: Grilla Dinámica de PCs (Canvas con Scrollbar)
         self.mapa_ui = PanelMapa(self.contenedor_principal, controlador=self)
@@ -158,13 +162,24 @@ class AppCyberReinoso(tk.Tk):
         """PATRÓN OBSERVER BÁSICO: Manda una señal a todos los paneles sub-modulares para que repinten su UI con los nuevos estados"""
         self.mapa_ui.dibujar_mapa_pcs()
         self.usuario_ui.dibujar_panel()
-        self.admin_ui.dibujar_panel()
+        if self.admin_ui:
+            self.admin_ui.dibujar_panel()
 
     def iniciar_sesion(self, maquina_seleccionada):
         """
         LÓGICA TRANSACCIONAL DE APERTURA:
         Abre el alquiler de un módulo validando reglas de negocio, saldos y multisesión.
         """
+        
+        # REGLA DE SEGURIDAD: Evita que usuarios inhabilitados inicien sesión
+        if self.usuario_activo.estado == 0:
+            messagebox.showwarning(
+                "Usuario inhabilitado",
+                f"El gamer '{self.usuario_activo.alias_gamer}' está inhabilitado y no puede iniciar sesión.",
+                parent=self
+            )
+            return
+        
         # REGLA ANTI-ABUSO (Multisesión): Evita que un mismo gamer alquile 3 PCs a la vez con un mismo saldo.
         for id_est, sesion in self.sesiones_activas.items():
             if sesion.usuario.id_usuario == self.usuario_activo.id_usuario:

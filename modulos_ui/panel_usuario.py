@@ -116,7 +116,7 @@ class PanelUsuario(tk.LabelFrame):
             activeforeground="white",
             pady=6,
             cursor="hand2",
-            command=lambda: VentanaRecarga(self.controlador, self.controlador.usuario_activo, callback_actualizar=self.controlador.refrescar_interfaz)
+            command=lambda: self.abrir_recarga
         )
         self.btn_recargar.pack(fill=tk.X, pady=(0, 15))
         # ANIMACIÓN HOVER: Enlaza eventos nativos del cursor del mouse para crear dinamismo visual
@@ -136,7 +136,7 @@ class PanelUsuario(tk.LabelFrame):
             activebackground="#0D47A1", 
             activeforeground="white",
             cursor="hand2",
-            command=lambda: VentanaTienda(self.controlador, usuario, callback_actualizar_panel=self.controlador.refrescar_interfaz)
+            command=lambda: self.abrir_tienda
         )
         self.btn_tienda.pack(fill=tk.X, pady=(0, 20))
         self.btn_tienda.bind("<Enter>", lambda e: self.btn_tienda.config(bg="#1E88E5"))
@@ -157,6 +157,31 @@ class PanelUsuario(tk.LabelFrame):
         self.btn_toggle_user.pack(fill=tk.X)
         self.btn_toggle_user.bind("<Enter>", lambda e: self.btn_toggle_user.config(bg="#C2185B"))
         self.btn_toggle_user.bind("<Leave>", lambda e: self.btn_toggle_user.config(bg="#AD1457"))
+        
+    def abrir_recarga(self):
+        """Verifica si el usuario está activo antes de instanciar la VentanaRecarga"""
+        usuario = self.controlador.usuario_activo
+        if usuario.estado == 0:
+            messagebox.showwarning(
+                "Acción denegada",
+                f"El gamer '{usuario.alias_gamer}' está inhabilitado y no puede recargar saldo.",
+                parent=self
+            )
+            return
+        VentanaRecarga(self.controlador, usuario, callback_actualizar=self.controlador.refrescar_interfaz)
+
+    def abrir_tienda(self):
+        """Verifica si el usuario está activo antes de instanciar la VentanaTienda"""
+        usuario = self.controlador.usuario_activo
+        if usuario.estado == 0:
+            messagebox.showwarning(
+                "Acción denegada",
+                f"El gamer '{usuario.alias_gamer}' está inhabilitado y no puede abrir la tienda.",
+                parent=self
+            )
+            return
+        VentanaTienda(self.controlador, usuario, callback_actualizar_panel=self.controlador.refrescar_interfaz)
+     
         
     def ejecutar_toggle_usuario(self):
         """Alterna el estado de una cuenta entre Activa e Inhabilitada"""
