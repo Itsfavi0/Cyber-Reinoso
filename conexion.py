@@ -519,7 +519,7 @@ class DBManager:
                         SELECT e.id_empleado, e.nombre, r.nombre_rol 
                         FROM Empleados e
                         INNER JOIN Roles r ON e.id_rol = r.id_rol
-                        WHERE e.usuario = ? AND e.clave = ?
+                        WHERE e.usuario COLLATE Latin1_General_CS_AS = ? AND e.clave COLLATE Latin1_General_CS_AS = ?
                     """
                     cursor.execute(consulta, (usuario, clave))
                     fila = cursor.fetchone()
