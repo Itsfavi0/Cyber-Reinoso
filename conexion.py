@@ -162,7 +162,7 @@ class DBManager:
             try:
                 with conn.cursor() as cursor:
                     cursor.execute(
-                        "SELECT id_usuario, alias_gamer FROM Usuarios"
+                        "SELECT id_usuario, alias_gamer FROM Usuarios ORDER BY id_usuario ASC"
                     )
                     filas = cursor.fetchall()
                     
