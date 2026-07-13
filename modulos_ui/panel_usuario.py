@@ -116,7 +116,7 @@ class PanelUsuario(tk.LabelFrame):
             activeforeground="white",
             pady=6,
             cursor="hand2",
-            command=lambda: self.abrir_recarga
+            command=self.abrir_recarga
         )
         self.btn_recargar.pack(fill=tk.X, pady=(0, 15))
         # ANIMACIÓN HOVER: Enlaza eventos nativos del cursor del mouse para crear dinamismo visual
@@ -136,7 +136,7 @@ class PanelUsuario(tk.LabelFrame):
             activebackground="#0D47A1", 
             activeforeground="white",
             cursor="hand2",
-            command=lambda: self.abrir_tienda
+            command=self.abrir_tienda
         )
         self.btn_tienda.pack(fill=tk.X, pady=(0, 20))
         self.btn_tienda.bind("<Enter>", lambda e: self.btn_tienda.config(bg="#1E88E5"))

@@ -112,7 +112,8 @@ class AppCyberReinoso(tk.Tk):
                     alias_gamer=datos_gamer["alias_gamer"],
                     rango_cuenta=datos_gamer["rango_cuenta"],
                     saldo_billetera=datos_gamer["saldo_billetera"],
-                    minutos_acumulados=datos_gamer.get("minutos_acumulados", 0)
+                    minutos_acumulados=datos_gamer.get("minutos_acumulados", 0),
+                    estado=datos_gamer.get("estado", 1)
                 )
                 self.sesiones_activas[pc_obj.id_estacion] = Sesion(id_sesion=s["id_sesion"], usuario=gamer_obj, estacion=pc_obj, hora_inicio=s["hora_inicio"])
         
