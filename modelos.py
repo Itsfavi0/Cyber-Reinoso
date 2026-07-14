@@ -284,3 +284,130 @@ class Sesion:
         if isinstance(otra_sesion, Sesion):
             return self.monto_cobrado + otra_sesion.monto_cobrado
         raise TypeError("Solo puedes sumar un objeto Sesion con otro objeto Sesion")
+    
+# =========================================================================
+# PRUEBAS UNITARIAS MANUALES (ENTRADA DIRECTA AL MÓDULO)
+# =========================================================================
+if __name__ == "__main__":
+
+    print("\n===== PRUEBA DE USUARIO =====")
+
+    usuario = Usuario(
+        id_usuario=1,
+        alias_gamer="ShadowX",
+        rango_cuenta="Bronce",
+        saldo_billetera=20.00,
+        minutos_acumulados=500
+    )
+
+    print(usuario)
+
+    print("\nRecargando saldo...")
+    usuario.recargar_saldo(10)
+    print(usuario)
+
+    print("\nAgregando minutos para subir de rango...")
+    subio_rango = usuario.agregar_minutos_jugados(200)
+
+    print("¿Subió de rango?", subio_rango)
+    print(usuario)
+    print("Descuento aplicado:", usuario.porcentaje_descuento * 100, "%")
+
+
+    print("\n===== PRUEBA DE ESTACIONES =====")
+
+    pc1 = PC_Regular(
+        id_estacion=1,
+        codigo_pc="PC-001",
+        tarifa_hora=6.00,
+        especificaciones={
+            "ram": "16GB",
+            "gpu": "RTX 3060"
+        }
+    )
+
+    pc2 = PC_eSports(
+        id_estacion=2,
+        codigo_pc="PC-002",
+        tarifa_hora=12.00
+    )
+
+    pc3 = PC_StreamingVIP(
+        id_estacion=3,
+        codigo_pc="PC-003",
+        tarifa_hora=18.00
+    )
+
+    estaciones = [pc1, pc2, pc3]
+
+    for pc in estaciones:
+        print(
+            f"{pc.codigo_pc} | "
+            f"Categoría: {pc.categoria} | "
+            f"Tarifa 30 min: S/{pc.calcular_tarifa(30)} | "
+            f"Estado: {pc.estado}"
+        )
+
+    print("\nTotal PCs registradas:", EstacionTrabajo.total_pcs_registradas)
+
+
+    print("\n===== PRUEBA DE SESIÓN =====")
+
+    print("Estado inicial PC:", pc2.estado)
+
+    sesion = Sesion(
+        id_sesion=100,
+        usuario=usuario,
+        estacion=pc2
+    )
+
+    print("Estado después de iniciar:", pc2.estado)
+
+    # Simulamos una sesión iniciada hace 60 minutos
+    sesion.hora_inicio = datetime.now().replace(
+        minute=(datetime.now().minute - 1) % 60
+    )
+
+    print("\nFinalizando sesión...")
+    sesion.finalizar_sesion()
+
+    print("Monto cobrado:", sesion.monto_cobrado)
+    print("Saldo restante:", usuario.saldo_billetera)
+    print("Estado PC:", pc2.estado)
+
+
+    print("\n===== PRUEBA DE CORTE AUTOMÁTICO =====")
+
+    usuario2 = Usuario(
+        id_usuario=2,
+        alias_gamer="LowBalance",
+        rango_cuenta="Bronce",
+        saldo_billetera=1.00
+    )
+
+    sesion2 = Sesion(
+        id_sesion=101,
+        usuario=usuario2,
+        estacion=pc3
+    )
+
+    sesion2.hora_inicio = datetime.now().replace(
+        minute=(datetime.now().minute - 5) % 60
+    )
+
+    sesion2.finalizar_sesion(es_corte_automatico=True)
+
+    print("Cobrado con corte automático:", sesion2.monto_cobrado)
+    print("Saldo final:", usuario2.saldo_billetera)
+
+
+    print("\n===== PRUEBA SOBRECARGA + =====")
+
+    total = sesion + sesion2
+
+    print(
+        "Caja acumulada de sesiones:",
+        total
+    )
+
+    print("\n===== FIN DE PRUEBAS =====")
