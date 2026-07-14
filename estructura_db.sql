@@ -41,6 +41,12 @@ CREATE TABLE TiposEstacion (
 )
 GO
 
+CREATE TABLE EstadosEstacion (
+    id_estado INT IDENTITY(1,1) PRIMARY KEY,
+    nombre_estado VARCHAR(20) UNIQUE NOT NULL -- 'Disponible', 'Ocupada', 'Mantenimiento'
+)
+GO
+
 
 -- =========================================================
 -- 2. TABLAS PRINCIPALES (ENTIDADES)
@@ -95,12 +101,13 @@ CREATE TABLE Estaciones (
     id_tipo INT NOT NULL DEFAULT 1,
     codigo_pc VARCHAR(20) NULL,
     id_categoria INT NOT NULL,
-    estado_actual VARCHAR(20) NOT NULL DEFAULT 'Disponible',
+    id_estado INT NOT NULL DEFAULT 1,
     estado BIT NOT NULL DEFAULT 1,
 
     FOREIGN KEY (id_tipo) REFERENCES TiposEstacion(id_tipo),
     FOREIGN KEY (codigo_pc) REFERENCES Computadoras(codigo_pc),
-    FOREIGN KEY (id_categoria) REFERENCES CategoriasEstacion(id_categoria)
+    FOREIGN KEY (id_categoria) REFERENCES CategoriasEstacion(id_categoria),
+    FOREIGN KEY (id_estado) REFERENCES EstadosEstacion(id_estado)
 )
 GO
 
@@ -180,6 +187,9 @@ INSERT INTO TiposEstacion (nombre_tipo, descripcion) VALUES
 ('Cabina Streamer', 'Habitación insonorizada con doble monitor, cámara 4K y micrófono condensador');
 GO
 
+INSERT INTO EstadosEstacion (nombre_estado) VALUES ('Disponible'), ('Ocupada'), ('Mantenimiento')
+GO
+
 -- Personal (FKs: 1 = Admin, 2 = Cajero)
 INSERT INTO Empleados (nombre, usuario, clave, id_rol) 
 VALUES 
@@ -246,20 +256,20 @@ GO
 -- ASIGNACIÓN A LOS MÓDULOS LÓGICOS (ESTACIONES)
 -- FKs Categoría: 1 = Regular (S/ 2.00), 2 = eSports (S/ 3.00), 3 = Streaming VIP (S/ 5.00)
 -- =========================================================
-INSERT INTO Estaciones (id_tipo, codigo_pc, id_categoria, estado_actual, estado) 
+INSERT INTO Estaciones (id_tipo, codigo_pc, id_categoria, id_estado, estado) 
 VALUES 
-(1, 'PC-001', 1, 'Disponible', 1),
-(1, 'PC-002', 1, 'Disponible', 1),
-(1, 'PC-003', 1, 'Disponible', 1),
-(1, 'PC-004', 1, 'Disponible', 1),
-(1, 'PC-005', 2, 'Disponible', 1),
-(1, 'PC-006', 2, 'Disponible', 1),
-(1, 'PC-007', 2, 'Mantenimiento', 0),
-(1, 'PC-008', 2, 'Disponible', 1),
-(1, 'PC-009', 2, 'Disponible', 1),
-(5, 'PC-010', 3, 'Disponible', 1),
-(5, 'PC-011', 3, 'Mantenimiento', 0),
-(5, 'PC-012', 3, 'Disponible', 1)
+(1, 'PC-001', 1, 1, 1),
+(1, 'PC-002', 1, 1, 1),
+(1, 'PC-003', 1, 1, 1),
+(1, 'PC-004', 1, 1, 1),
+(1, 'PC-005', 2, 1, 1),
+(1, 'PC-006', 2, 1, 1),
+(1, 'PC-007', 2, 3, 0),
+(1, 'PC-008', 2, 1, 1),
+(1, 'PC-009', 2, 1, 1),
+(5, 'PC-010', 3, 1, 1),
+(5, 'PC-011', 3, 3, 0),
+(5, 'PC-012', 3, 1, 1)
 GO
 
 PRINT '¡Base de datos Cyber Reinoso desplegada con éxito!';

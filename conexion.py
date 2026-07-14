@@ -64,11 +64,12 @@ class DBManager:
                     # - INNER JOIN vincula Estaciones con CategoriasEstacion obligatoriamente (trae tarifas y nombres oficiales).
                     # - LEFT JOIN es la clave de infraestructura: trae todas las mesas, tengan o no un hardware físico asignado.
                     consulta = """
-                        SELECT e.id_estacion, e.codigo_pc, cat.nombre_categoria, e.estado_actual,
+                        SELECT e.id_estacion, e.codigo_pc, cat.nombre_categoria, est.nombre_estado,
                                c.procesador, c.memoria_ram, c.tarjeta_grafica, c.monitor, c.mouse,
                                cat.tarifa_hora
                         FROM Estaciones e
                         INNER JOIN CategoriasEstacion cat ON e.id_categoria = cat.id_categoria
+                        INNER JOIN EstadosEstacion est ON e.id_estado = est.id_estado
                         LEFT JOIN Computadoras c ON e.codigo_pc = c.codigo_pc
                     """
                     cursor.execute(consulta)
@@ -139,7 +140,8 @@ class DBManager:
                     # cerrándole las puertas al 100% a ataques de Inyección SQL.
                     consulta = """
                         UPDATE Estaciones
-                        SET estado_actual = ? WHERE id_estacion = ?        
+                        SET id_estado = (SELECT id_estado FROM EstadosEstacion WHERE nombre_estado = ?)
+                        WHERE id_estacion = ?        
                     """
                     cursor.execute(consulta, (nuevo_estado, id_estacion))
                     
@@ -600,7 +602,10 @@ class DBManager:
                     consulta_toggle = """
                         UPDATE Estaciones 
                         SET estado = CASE WHEN estado = 1 THEN 0 ELSE 1 END,
-                            estado_actual = CASE WHEN estado = 1 THEN 'Mantenimiento' ELSE 'Disponible' END
+                            id_estado = CASE WHEN estado = 1 
+                                            THEN (SELECT id_estado FROM EstadosEstacion WHERE nombre_estado = 'Mantenimiento')
+                                            ELSE (SELECT id_estado FROM EstadosEstacion WHERE nombre_estado = 'Disponible') 
+                                        END
                         WHERE codigo_pc = ?
                     """
                     cursor.execute(consulta_toggle, (codigo_pc,))
@@ -654,8 +659,8 @@ class DBManager:
                     # 2. Creamos la estación lógica en Estaciones vinculada al código de la PC
                     # Por defecto inicia operativa ('Disponible') y estado (1)
                     consulta_estacion = """
-                        INSERT INTO Estaciones (id_categoria, codigo_pc, estado_actual, estado)
-                        VALUES (?, ?, 'Disponible', 1)
+                        INSERT INTO Estaciones (id_categoria, codigo_pc, id_estado, estado)
+                        VALUES (?, ?, (SELECT id_estado FROM EstadosEstacion WHERE nombre_estado = 'Disponible'), 1)
                     """
                     cursor.execute(consulta_estacion, (id_categoria, codigo_pc))
                     
