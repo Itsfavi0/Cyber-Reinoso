@@ -156,7 +156,7 @@ class EstacionTrabajo(ABC):
         Si un programador escribe mal un estado en el backend (ej. 'disponible' en minúscula),
         el sistema frena la asignación impidiendo estados corruptos en el mapa de PCs.
         """
-        estados_permitidos = ["Disponible", "Ocupada", "Mantenimiento", "Hibernación"]
+        estados_permitidos = ["Disponible", "Ocupada", "Mantenimiento"]
         if nuevo_estado not in estados_permitidos:
             raise ValueError(f"Estado '{nuevo_estado}' no es válido")
         self.__estado = nuevo_estado
