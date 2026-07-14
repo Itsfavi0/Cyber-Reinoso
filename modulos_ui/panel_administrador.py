@@ -36,8 +36,6 @@ class PanelAdministrador(tk.LabelFrame):
         # NOTA BÁSICA: self.winfo_children() devuelve una lista con todas las cajas, etiquetas y botones internos actuales.
         for widget in self.winfo_children():
             widget.destroy()
-
-        db = DBManager()
         
         # --- BOTÓN AÑADIR ESTACIÓN ---
         self.btn_add_pc = tk.Button(
